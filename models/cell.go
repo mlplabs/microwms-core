@@ -2,7 +2,7 @@ package models
 
 import "fmt"
 
-// Ячейка склада
+// Cell ячейка склада
 type Cell struct {
 	Id            int64        `json:"id"`
 	Name          string       `json:"name"`
@@ -23,25 +23,25 @@ type CellService struct {
 	Storage *Storage
 }
 
-// Установка размера ячейки
+// SetSize устанавливает размер ячейки
 func (sz *SpecificSize) SetSize(length, width, height int, kUV float32) {
 	sz.volume = float32(length * width * height)
 	sz.usefulVolume = sz.volume * kUV
 }
 
-// Возвращает размеры ячейки
+// GetSize возвращает размеры ячейки
 // length, width, height as int
 // volume, usefulVolume as float
 func (sz *SpecificSize) GetSize() (int, int, int, float32, float32) {
 	return sz.length, sz.width, sz.height, sz.volume, sz.usefulVolume
 }
 
-// Строковое представление ячейи в виде набора чисел
+// GetNumeric возвращает строковое представление ячейки в виде набора чисел
 func (c *Cell) GetNumeric() string {
 	return fmt.Sprintf("%01d%02d%02d%02d%02d", c.WhsId, c.ZoneId, c.PassageId, c.RackId, c.Floor)
 }
 
-// Человеко-понятное представление
+// GetNumericView возвращает человеко-понятное представление (с разделителями)
 func (c *Cell) GetNumericView() string {
 	return fmt.Sprintf("%01d-%02d-%02d-%02d-%02d", c.WhsId, c.ZoneId, c.PassageId, c.RackId, c.Floor)
 }

@@ -1,4 +1,4 @@
-package wms_core
+package microwms_core
 
 import (
 	"fmt"

@@ -2,7 +2,7 @@ package models
 
 import "database/sql"
 
-// Продукт. Единица хранения.
+// Product единица хранения
 type Product struct {
 	Id           int64          `json:"id"`
 	Name         string         `json:"name"`
@@ -11,9 +11,9 @@ type Product struct {
 	Size         SpecificSize   `json:"size"`
 }
 
-// Производитель
+// Manufacturer производитель
 type Manufacturer struct {
-	Id   int64 `json:"id"`
+	Id   int64  `json:"id"`
 	Name string `json:"name"`
 }
 
@@ -21,7 +21,7 @@ type ProductService struct {
 	Storage *Storage
 }
 
-// Возвращает список штрихкодов продукта
+// GetProductBarcodes возвращает список штрих-кодов продукта
 func (ps *ProductService) GetProductBarcodes(productId int64) (map[string]int, error) {
 	var bcVal string
 	var bcType int
@@ -49,7 +49,7 @@ func (ps *ProductService) GetProductBarcodes(productId int64) (map[string]int, e
 	return bMap, nil
 }
 
-// Возвращает продукт по внутреннему идентификатору
+// FindProductById возвращает продукт по внутреннему идентификатору
 func (ps *ProductService) FindProductById(productId int64) (*Product, error) {
 
 	sqlCell := "SELECT p.id, p.name, p.manufacturer_id, m.name as manufacturer_name " +
@@ -71,7 +71,7 @@ func (ps *ProductService) FindProductById(productId int64) (*Product, error) {
 	return p, nil
 }
 
-// Возвращает продукт по штрихкоду
+// FindProductsByBarcode возвращает продукт по штрих-коду
 func (ps *ProductService) FindProductsByBarcode(barcodeStr string) (*Product, error) {
 	var pId int64
 	var bcType int
@@ -93,7 +93,7 @@ func (ps *ProductService) FindProductsByBarcode(barcodeStr string) (*Product, er
 	return p, nil
 }
 
-// Возвращает список продуктов
+// GetProducts возвращает список продуктов
 func (ps *ProductService) GetProducts() ([]Product, error) {
 	sqlProd := "SELECT p.id, p.name, p.manufacturer_id, m.name FROM products p LEFT JOIN manufacturers m ON p.manufacturer_id = m.id"
 	rows, err := ps.Storage.Query(sqlProd)
@@ -111,7 +111,7 @@ func (ps *ProductService) GetProducts() ([]Product, error) {
 	return prods, nil
 }
 
-// Возвращает список производителей
+// GetManufacturers возвращает список производителей
 func (ps *ProductService) GetManufacturers() ([]Manufacturer, error) {
 	sqlMnf := "SELECT m.id, m.name FROM manufacturers m"
 	rows, err := ps.Storage.Query(sqlMnf)
@@ -128,4 +128,3 @@ func (ps *ProductService) GetManufacturers() ([]Manufacturer, error) {
 	}
 	return mnfs, nil
 }
-

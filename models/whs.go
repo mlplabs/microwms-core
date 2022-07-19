@@ -1,6 +1,6 @@
 package models
 
-// Склад. Физический склад
+// Whs объект физического склада
 // Обязательно содержит минимум 3 зоны Zone{} - приемки, хранения и отгрузки.
 // Зоны приемки и отгрузки не может быть более 1, эти зоны являются входом и выходом на складе соответственно
 type Whs struct {
@@ -16,9 +16,7 @@ type WhsService struct {
 	Storage *Storage
 }
 
-/*
-	Возвращает склад по идентификатору
-*/
+// FindWhsById возвращает склад по идентификатору
 func (ws *WhsService) FindWhsById(whsId int64) (*Whs, error) {
 	sqlCell := "SELECT id, name FROM whs WHERE id = $1"
 	row := ws.Storage.Db.QueryRow(sqlCell, whsId)
@@ -30,7 +28,7 @@ func (ws *WhsService) FindWhsById(whsId int64) (*Whs, error) {
 	return w, nil
 }
 
-// Возвращает список складов
+// GetWarehouses возвращает список складов
 func (ws *WhsService) GetWarehouses() ([]Whs, error) {
 	sqlProd := "SELECT w.id, w.name FROM whs w"
 	rows, err := ws.Storage.Query(sqlProd)
@@ -48,16 +46,12 @@ func (ws *WhsService) GetWarehouses() ([]Whs, error) {
 	return whss, nil
 }
 
-/*
-	Возвращает список зон склада
-*/
+// GetZones возвращает список зон склада
 func (ws *WhsService) GetZones(whs Whs) ([]Zone, error) {
 	return ws.GetZonesByWhsId(whs.Id)
 }
 
-/*
-	Возвращает список зон склада по его идентификатору
-*/
+// GetZonesByWhsId	возвращает список зон склада по его идентификатору
 func (ws *WhsService) GetZonesByWhsId(whsId int) ([]Zone, error) {
 	sqlZones := "SELECT id, name, zone_type FROM zones WHERE whs_id = $1"
 
@@ -77,11 +71,4 @@ func (ws *WhsService) GetZonesByWhsId(whsId int) ([]Zone, error) {
 		res = append(res, z)
 	}
 	return res, nil
-}
-
-/*
-
- */
-func (ws *WhsService) CreateWarehouse(whs *Whs) {
-
 }

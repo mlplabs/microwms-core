@@ -7,20 +7,20 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// Весогабаритные характеристики (см/см3/кг)
-// полный объем: lentgth * width * height
-// полезный объем: lentgth * width * height * K(0.8)
-// вес: для продукта вес единицы в килограммах, для ячейи максимально возможный вес размещенных продуктов
+// SpecificSize структура весогабаритных характеристик (см/см3/кг)
+// полный объем: length * width * height
+// полезный объем: length * width * height * K(0.8)
+// вес: для продукта вес единицы в килограммах, для ячейки максимально возможный вес размещенных продуктов
 type SpecificSize struct {
 	length       int
 	width        int
 	height       int
 	weight       float32
 	volume       float32
-	usefulVolume float32
+	usefulVolume float32 // Полезный объем ячейки
 }
 
-// Типы штрихкодов
+// Типы штрих-кодов
 const (
 	BarcodeTypeEAN13 = iota
 	BarcodeTypeEAN8
@@ -29,15 +29,15 @@ const (
 )
 
 const (
-	// Служебная ячейка - запрещен автоматический отбор, но разрешены ручные перемещение в/из ячейки
+	// CellDynamicPropIsService служебная ячейка. Запрещен автоматический отбор, но разрешены ручные перемещения в/из ячейки
 	CellDynamicPropIsService = iota
-	// При размещении не используется проверка по размерам (безразмерная ячейка)
+	// CellDynamicPropSizeFree безразмерная ячейка. При размещении не используется проверка по размерам
 	CellDynamicPropSizeFree
-	// При размещении не используется проверка по весу
+	// CellDynamicPropWeightFree при размещении не используется проверка по весу
 	CellDynamicPropWeightFree
-	// Запрещено любое размещение в ячейку
+	// CellDynamicPropNotAllowedIn запрещено любое размещение в ячейку
 	CellDynamicPropNotAllowedIn
-	// Запрещен любой отбор из ячейки
+	// CellDynamicPropNotAllowedOut запрещен любой отбор из ячейки
 	CellDynamicPropNotAllowedOut
 )
 
@@ -60,46 +60,45 @@ func (s *Storage) Init(host, dbname, dbuser, dbpass string) error {
 	return nil
 }
 
-// Возвращает менеджер для работы с продуктами
+// GetProductService возвращает менеджер для работы с продуктами
 func (s *Storage) GetProductService() *ProductService {
 	ps := new(ProductService)
 	ps.Storage = s
 	return ps
 }
 
-// Возвращает менеджер для работы со складами
+// GetWhsService возвращает менеджер для работы со складами
 func (s *Storage) GetWhsService() *WhsService {
 	ws := new(WhsService)
 	ws.Storage = s
 	return ws
 }
 
-// Возвращает менеджер для работы с зонами склада
+// GetZoneService возвращает менеджер для работы с зонами склада
 func (s *Storage) GetZoneService() *ZoneService {
 	zs := new(ZoneService)
 	zs.Storage = s
 	return zs
 }
 
-// Возвращает менеджер для работы с ячейкам
+// GetCellService возвращает менеджер для работы с ячейкам
 func (s *Storage) GetCellService() *CellService {
 	cs := new(CellService)
 	cs.Storage = s
 	return cs
 }
 
-func (s *Storage) GetWarehouses()  {
-	
-}
+func (s *Storage) GetWarehouses() {
 
+}
 
 func (s *Storage) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return s.Db.Query(query, args...)
 }
 
-// Возвращает ячейку по внутреннему идентификатору
+// FindCellById возвращает ячейку по внутреннему идентификатору
 func (s *Storage) FindCellById(cellId int64) (*Cell, error) {
-	sqlCell := "SELECT id, name, whs_id, zone_id, passage_id, rack_id, floor, sz_length, sz_width, sz_height, sz_volume, sz_if_volume, sz_weight, not_allowed_in, not_allowed_out, is_service, is_size_free, is_weight_free FROM cells WHERE id = $1"
+	sqlCell := "SELECT id, name, whs_id, zone_id, passage_id, rack_id, floor, sz_length, sz_width, sz_height, sz_volume, sz_uf_volume, sz_weight, not_allowed_in, not_allowed_out, is_service, is_size_free, is_weight_free FROM cells WHERE id = $1"
 	row := s.Db.QueryRow(sqlCell, cellId)
 	c := new(Cell)
 
@@ -112,7 +111,7 @@ func (s *Storage) FindCellById(cellId int64) (*Cell, error) {
 	return c, nil
 }
 
-// Размещает в ячейку (cell) продукт (prod) в количестве (quantity)
+// Put размещает в ячейку (cell) продукт (prod) в количестве (quantity)
 // Возвращает количество которое было размещено (quantity)
 func (s *Storage) Put(cell *Cell, prod *Product, quantity int, tx *sql.Tx) (int, error) {
 	var err error
@@ -128,8 +127,8 @@ func (s *Storage) Put(cell *Cell, prod *Product, quantity int, tx *sql.Tx) (int,
 	return quantity, nil
 }
 
-// Забирает из ячейки (cell) продукт (prod) в количестве (quantity)
-// Возвращает забранное количество (quantity)
+// Get отбирает из ячейки (cell) продукт (prod) в количестве (quantity)
+// Возвращает отобранное количество (quantity)
 func (s *Storage) Get(cell *Cell, prod *Product, quantity int, tx *sql.Tx) (int, error) {
 	var err error
 
@@ -173,7 +172,7 @@ func (s *Storage) Get(cell *Cell, prod *Product, quantity int, tx *sql.Tx) (int,
 	return quantity, nil
 }
 
-// Возвращает количесво продуктов на св ячейке
+// Quantity возвращает количество продуктов на св ячейке
 func (s *Storage) Quantity(whsId int, cell Cell, tx *sql.Tx) (map[int]int, error) {
 	var zoneId, cellId, prodId, quantity int
 	res := make(map[int]int)
@@ -220,14 +219,14 @@ func (s *Storage) Move(cellSrc, cellDst *Cell, prod *Product, quantity int) erro
 	return nil
 }
 
-// Массовое изменение весогабаритных характеристик ячеек
+// BulkChangeSzCells устанавливает весогабаритные характеристики для массива ячеек
 func (s *Storage) BulkChangeSzCells(cells []Cell, sz SpecificSize) (int64, error) {
 	var ids []int64
 
 	for _, c := range cells {
 		ids = append(ids, c.Id)
 	}
-	sqlBulkUpdate := "UPDATE cells SET sz_length=$2, sz_width=$3, sz_height=$4, sz_volume=$5, sz_if_volume=$6, sz_weight=$7 WHERE id = ANY($1)"
+	sqlBulkUpdate := "UPDATE cells SET sz_length=$2, sz_width=$3, sz_height=$4, sz_volume=$5, sz_uf_volume=$6, sz_weight=$7 WHERE id = ANY($1)"
 	res, err := s.Db.Exec(sqlBulkUpdate, pq.Array(ids), sz.length, sz.width, sz.height, sz.volume, sz.usefulVolume, sz.weight)
 	if err != nil {
 		return 0, err
@@ -235,7 +234,7 @@ func (s *Storage) BulkChangeSzCells(cells []Cell, sz SpecificSize) (int64, error
 	return res.RowsAffected()
 }
 
-// Массовое изменение динамических параметров ячеек
+// BulkChangePropCells изменяет динамические параметры для массива ячеек
 func (s *Storage) BulkChangePropCells(cells []Cell, CellDynamicProp int, value bool) (int64, error) {
 	var ids []int64
 
