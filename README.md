@@ -1,1 +1,1 @@
-# microwms-core
+# wms-core
