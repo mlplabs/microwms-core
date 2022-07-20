@@ -25,15 +25,15 @@ type CellService struct {
 
 // SetSize устанавливает размер ячейки
 func (sz *SpecificSize) SetSize(length, width, height int, kUV float32) {
-	sz.volume = float32(length * width * height)
-	sz.usefulVolume = sz.volume * kUV
+	sz.Volume = float32(length * width * height)
+	sz.UsefulVolume = sz.Volume * kUV
 }
 
 // GetSize возвращает размеры ячейки
 // length, width, height as int
 // volume, usefulVolume as float
 func (sz *SpecificSize) GetSize() (int, int, int, float32, float32) {
-	return sz.length, sz.width, sz.height, sz.volume, sz.usefulVolume
+	return sz.Length, sz.Width, sz.Height, sz.Volume, sz.UsefulVolume
 }
 
 // GetNumeric возвращает строковое представление ячейки в виде набора чисел
