@@ -1,7 +1,5 @@
 package models
 
-import "database/sql"
-
 // Product единица хранения
 type Product struct {
 	Id           int64          `json:"id"`
@@ -43,9 +41,6 @@ func (ps *ProductService) GetProductBarcodes(productId int64) (map[string]int, e
 		bMap[bcVal] = bcType
 	}
 
-	if len(bMap) == 0 {
-		return nil, sql.ErrNoRows
-	}
 	return bMap, nil
 }
 
