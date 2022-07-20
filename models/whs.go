@@ -7,9 +7,9 @@ type Whs struct {
 	Id             int    `json:"id"`
 	Name           string `json:"name"`
 	Address        string `json:"address"`
-	AcceptanceZone Zone
-	ShippingZone   Zone
-	StorageZones   []Zone
+	AcceptanceZone Zone   `json:"-"`
+	ShippingZone   Zone   `json:"-"`
+	StorageZones   []Zone `json:"-"`
 }
 
 type WhsService struct {
