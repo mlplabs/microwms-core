@@ -6,7 +6,7 @@ import "database/sql"
 type Product struct {
 	Id           int64          `json:"id"`
 	Name         string         `json:"name"`
-	Barcodes     map[string]int `json:"barcode"`
+	Barcodes     map[string]int `json:"barcodes"`
 	Manufacturer Manufacturer   `json:"manufacturer"`
 	Size         SpecificSize   `json:"size"`
 }
