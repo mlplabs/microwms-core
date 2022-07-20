@@ -12,12 +12,12 @@ import (
 // полезный объем: length * width * height * K(0.8)
 // вес: для продукта вес единицы в килограммах, для ячейки максимально возможный вес размещенных продуктов
 type SpecificSize struct {
-	length       int
-	width        int
-	height       int
-	weight       float32
-	volume       float32
-	usefulVolume float32 // Полезный объем ячейки
+	Length       int     `json:"length"`
+	Width        int     `json:"width"`
+	Height       int     `json:"height"`
+	Weight       float32 `json:"weight"`
+	Volume       float32 `json:"volume"`
+	UsefulVolume float32 `json:"useful_volume"` // Полезный объем ячейки
 }
 
 // Типы штрих-кодов
@@ -103,7 +103,7 @@ func (s *Storage) FindCellById(cellId int64) (*Cell, error) {
 	c := new(Cell)
 
 	err := row.Scan(&c.Id, &c.Name, &c.WhsId, &c.ZoneId, &c.PassageId, &c.RackId, &c.Floor,
-		&c.Size.length, &c.Size.width, &c.Size.height, &c.Size.volume, &c.Size.usefulVolume, &c.Size.weight,
+		&c.Size.Length, &c.Size.Width, &c.Size.Height, &c.Size.Volume, &c.Size.UsefulVolume, &c.Size.Weight,
 		&c.NotAllowedIn, &c.NotAllowedOut, &c.IsService, &c.IsSizeFree, &c.IsWeightFree)
 	if err != nil {
 		return nil, err
@@ -227,7 +227,7 @@ func (s *Storage) BulkChangeSzCells(cells []Cell, sz SpecificSize) (int64, error
 		ids = append(ids, c.Id)
 	}
 	sqlBulkUpdate := "UPDATE cells SET sz_length=$2, sz_width=$3, sz_height=$4, sz_volume=$5, sz_uf_volume=$6, sz_weight=$7 WHERE id = ANY($1)"
-	res, err := s.Db.Exec(sqlBulkUpdate, pq.Array(ids), sz.length, sz.width, sz.height, sz.volume, sz.usefulVolume, sz.weight)
+	res, err := s.Db.Exec(sqlBulkUpdate, pq.Array(ids), sz.Length, sz.Width, sz.Height, sz.Volume, sz.UsefulVolume, sz.Weight)
 	if err != nil {
 		return 0, err
 	}
