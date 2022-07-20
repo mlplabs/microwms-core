@@ -2,11 +2,17 @@ package models
 
 // Product единица хранения
 type Product struct {
-	Id           int64          `json:"id"`
-	Name         string         `json:"name"`
-	Barcodes     map[string]int `json:"barcodes"`
-	Manufacturer Manufacturer   `json:"manufacturer"`
-	Size         SpecificSize   `json:"size"`
+	Id           int64        `json:"id"`
+	Name         string       `json:"name"`
+	Barcodes     []Barcode    `json:"barcodes"`
+	Manufacturer Manufacturer `json:"manufacturer"`
+	Size         SpecificSize `json:"size"`
+}
+
+// Barcode объект штрих-кода
+type Barcode struct {
+	Data string `json:"data"`
+	Type int    `json:"type"`
 }
 
 // Manufacturer производитель
@@ -20,11 +26,10 @@ type ProductService struct {
 }
 
 // GetProductBarcodes возвращает список штрих-кодов продукта
-func (ps *ProductService) GetProductBarcodes(productId int64) (map[string]int, error) {
+func (ps *ProductService) GetProductBarcodes(productId int64) ([]Barcode, error) {
 	var bcVal string
 	var bcType int
-
-	bMap := make(map[string]int)
+	bcArr := make([]Barcode, 0, 0)
 
 	sqlBc := "SELECT barcode, barcode_type FROM barcodes WHERE product_id = $1"
 	rows, err := ps.Storage.Db.Query(sqlBc, productId)
@@ -38,10 +43,14 @@ func (ps *ProductService) GetProductBarcodes(productId int64) (map[string]int, e
 		if err != nil {
 			return nil, err
 		}
-		bMap[bcVal] = bcType
+		b := Barcode{
+			bcVal,
+			bcType,
+		}
+		bcArr = append(bcArr, b)
 	}
 
-	return bMap, nil
+	return bcArr, nil
 }
 
 // FindProductById возвращает продукт по внутреннему идентификатору
