@@ -76,25 +76,32 @@ func (ps *ProductService) FindProductById(productId int64) (*Product, error) {
 }
 
 // FindProductsByBarcode возвращает продукт по штрих-коду
-func (ps *ProductService) FindProductsByBarcode(barcodeStr string) (*Product, error) {
+func (ps *ProductService) FindProductsByBarcode(barcodeStr string) ([]Product, error) {
 	var pId int64
 	var bcType int
 	var bcVal string
+	prods := make([]Product, 0, 0)
 
 	sqlBc := "SELECT product_id, barcode, barcode_type FROM barcodes WHERE barcode = $1"
-	row := ps.Storage.Db.QueryRow(sqlBc, barcodeStr)
-	err := row.Scan(&pId, &bcVal, &bcType)
+
+	rows, err := ps.Storage.Db.Query(sqlBc, barcodeStr)
 	if err != nil {
 		return nil, err
 	}
 
-	p, err := ps.FindProductById(pId)
-
-	if err != nil {
-		return nil, err
+	for rows.Next() {
+		err := rows.Scan(&pId, &bcVal, &bcType)
+		if err != nil {
+			return nil, err
+		}
+		p, err := ps.FindProductById(pId)
+		if err != nil {
+			return nil, err
+		}
+		prods = append(prods, *p)
 	}
 
-	return p, nil
+	return prods, nil
 }
 
 // GetProducts возвращает список продуктов
