@@ -103,6 +103,11 @@ func (ps *ProductService) FindProductsByBarcode(barcodeStr string) ([]Product, e
 		if err != nil {
 			return nil, err
 		}
+		pBarcodes, err := ps.GetProductBarcodes(p.Id)
+		if err != nil {
+			return nil, err
+		}
+		p.Barcodes = pBarcodes
 		prods = append(prods, *p)
 	}
 
@@ -122,6 +127,13 @@ func (ps *ProductService) GetProducts() ([]Product, error) {
 	for rows.Next() {
 		p := new(Product)
 		err = rows.Scan(&p.Id, &p.Name, &p.Manufacturer.Id, &p.Manufacturer.Name)
+
+		pBarcodes, err := ps.GetProductBarcodes(p.Id) // пока так
+		if err != nil {
+			return nil, err
+		}
+		p.Barcodes = pBarcodes
+
 		prods = append(prods, *p)
 	}
 	return prods, nil
@@ -191,7 +203,7 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 		for _, bc := range p.Barcodes {
 			sqlBc := "INSERT INTO barcodes (product_id, barcode, barcode_type) " +
 				"VALUES($1, $2, $3) " +
-				"ON CONFLICT (product_id, barcode, barcode_type) DO UPDATE"
+				"ON CONFLICT (product_id, barcode, barcode_type) DO UPDATE SET product_id=$1, barcode=$2, barcode_type=$3"
 			_, err := tx.Exec(sqlBc, pId, bc.Data, bc.Type)
 			if err != nil {
 				tx.Rollback()
