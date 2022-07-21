@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"github.com/mlplabs/microwms-core/core"
+	"strings"
 )
 
 // Product единица хранения
@@ -150,13 +151,13 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 			Code: 0,
 		}
 	}
-	if p.Name == "" {
+	if strings.TrimSpace(p.Name) == "" {
 		return 0, &core.WrapError{Err: fmt.Errorf("required field 'name' is empty"), Code: 0}
 	}
 
 	mId = p.Manufacturer.Id
 
-	if mId == 0 && p.Manufacturer.Name != "" {
+	if mId == 0 && strings.TrimSpace(p.Manufacturer.Name) != "" {
 		mnfs, err := ps.FindManufacturerByName(p.Manufacturer.Name)
 		if err != nil {
 			return 0, &core.WrapError{Err: err, Code: core.SystemError}
