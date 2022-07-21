@@ -176,7 +176,7 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 	}
 
 	if mId == 0 {
-		sqlIns := "INSERT INTO manufacturers (name) VALUES ($1)"
+		sqlIns := "INSERT INTO manufacturers (name) VALUES ($1) RETURNING id"
 		err := tx.QueryRow(sqlIns, p.Manufacturer.Name).Scan(&mId)
 		if err != nil {
 			tx.Rollback()
