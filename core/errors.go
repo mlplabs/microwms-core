@@ -10,6 +10,6 @@ type WrapError struct {
 	Code int
 }
 
-func (err WrapError) Error() string {
-	return err.Error()
+func (w *WrapError) Error() string {
+	return w.Err.Error()
 }
