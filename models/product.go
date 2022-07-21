@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"github.com/mlplabs/microwms-core/core"
 )
 
 // Product единица хранения
@@ -135,7 +136,10 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 		return 0, fmt.Errorf("possibly an error: create product with id <> 0")
 	}
 	if p.Name == "" {
-		return 0, fmt.Errorf("required field 'name' is empty")
+		return 0, &core.WrapError{
+			Err:  fmt.Errorf("required field 'name' is empty"),
+			Code: core.UnknownError,
+		}
 	}
 
 	mId = p.Manufacturer.Id
@@ -155,7 +159,10 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 
 	tx, err := ps.Storage.Db.Begin()
 	if err != nil {
-		return 0, err
+		return 0, &core.WrapError{
+			Err:  err,
+			Code: core.UnknownError,
+		}
 	}
 
 	if mId == 0 {
@@ -163,7 +170,10 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 		err := tx.QueryRow(sqlIns, p.Manufacturer.Name).Scan(&mId)
 		if err != nil {
 			tx.Rollback()
-			return 0, err
+			return 0, &core.WrapError{
+				Err:  err,
+				Code: core.UnknownError,
+			}
 		}
 	}
 
@@ -171,7 +181,10 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 	err = tx.QueryRow(sqlInsProd, p.Name, mId, p.Size.Length, p.Size.Width, p.Size.Height, p.Size.Weight, p.Size.Volume, p.Size.UsefulVolume).Scan(&pId)
 	if err != nil {
 		tx.Rollback()
-		return 0, err
+		return 0, &core.WrapError{
+			Err:  err,
+			Code: core.UnknownError,
+		}
 	}
 
 	if p.Barcodes != nil {
@@ -182,16 +195,25 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 			_, err := tx.Exec(sqlBc, pId, bc.Data, bc.Type)
 			if err != nil {
 				tx.Rollback()
-				return 0, err
+				return 0, &core.WrapError{
+					Err:  err,
+					Code: core.UnknownError,
+				}
 			}
 		}
 	}
 	err = tx.Commit()
 	if err != nil {
-		return 0, err
+		return 0, &core.WrapError{
+			Err:  err,
+			Code: core.UnknownError,
+		}
 	}
 
-	return pId, nil
+	return pId, &core.WrapError{
+		Err:  nil,
+		Code: core.SuccessCompleted,
+	}
 }
 
 // GetManufacturers возвращает список производителей
@@ -225,9 +247,15 @@ func (ps *ProductService) CreateManufacturer(m *Manufacturer) (int64, error) {
 	sqlInsProd := "INSERT INTO manufacturers (name) VALUES ($1) RETURNING id"
 	err := ps.Storage.Db.QueryRow(sqlInsProd, m.Name).Scan(&mId)
 	if err != nil {
-		return 0, err
+		return 0, &core.WrapError{
+			Err:  err,
+			Code: core.UnknownError,
+		}
 	}
-	return mId, nil
+	return mId, &core.WrapError{
+		Err:  nil,
+		Code: core.SuccessCompleted,
+	}
 }
 
 // FindManufacturerByName возвращает список производителей по наименованию
