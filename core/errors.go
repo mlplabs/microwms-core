@@ -2,7 +2,7 @@ package core
 
 const (
 	SuccessCompleted = iota + 100
-	UnknownError
+	SystemError
 )
 
 type WrapError struct {

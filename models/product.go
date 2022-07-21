@@ -39,14 +39,14 @@ func (ps *ProductService) GetProductBarcodes(productId int64) ([]Barcode, error)
 	sqlBc := "SELECT barcode, barcode_type FROM barcodes WHERE product_id = $1"
 	rows, err := ps.Storage.Db.Query(sqlBc, productId)
 	if err != nil {
-		return nil, err
+		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		err := rows.Scan(&bcVal, &bcType)
 		if err != nil {
-			return nil, err
+			return nil, &core.WrapError{Err: err, Code: core.SystemError}
 		}
 		b := Barcode{
 			bcVal,
@@ -69,12 +69,12 @@ func (ps *ProductService) FindProductById(productId int64) (*Product, error) {
 	p := new(Product)
 	err := row.Scan(&p.Id, &p.Name, &p.Manufacturer.Id, &p.Manufacturer.Name)
 	if err != nil {
-		return nil, err
+		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
 	pBarcodes, err := ps.GetProductBarcodes(p.Id)
 	if err != nil {
-		return nil, err
+		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 	p.Barcodes = pBarcodes
 	return p, nil
@@ -91,21 +91,21 @@ func (ps *ProductService) FindProductsByBarcode(barcodeStr string) ([]Product, e
 
 	rows, err := ps.Storage.Db.Query(sqlBc, barcodeStr)
 	if err != nil {
-		return nil, err
+		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
 	for rows.Next() {
 		err := rows.Scan(&pId, &bcVal, &bcType)
 		if err != nil {
-			return nil, err
+			return nil, &core.WrapError{Err: err, Code: core.SystemError}
 		}
 		p, err := ps.FindProductById(pId)
 		if err != nil {
-			return nil, err
+			return nil, &core.WrapError{Err: err, Code: core.SystemError}
 		}
 		pBarcodes, err := ps.GetProductBarcodes(p.Id)
 		if err != nil {
-			return nil, err
+			return nil, &core.WrapError{Err: err, Code: core.SystemError}
 		}
 		p.Barcodes = pBarcodes
 		prods = append(prods, *p)
@@ -119,7 +119,7 @@ func (ps *ProductService) GetProducts() ([]Product, error) {
 	sqlProd := "SELECT p.id, p.name, p.manufacturer_id, m.name FROM products p LEFT JOIN manufacturers m ON p.manufacturer_id = m.id"
 	rows, err := ps.Storage.Query(sqlProd)
 	if err != nil {
-		return nil, err
+		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 	defer rows.Close()
 
@@ -130,7 +130,7 @@ func (ps *ProductService) GetProducts() ([]Product, error) {
 
 		pBarcodes, err := ps.GetProductBarcodes(p.Id) // пока так
 		if err != nil {
-			return nil, err
+			return nil, &core.WrapError{Err: err, Code: core.SystemError}
 		}
 		p.Barcodes = pBarcodes
 
@@ -145,13 +145,13 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 	mId := int64(0)
 
 	if p.Id != 0 {
-		return 0, fmt.Errorf("possibly an error: create product with id <> 0")
+		return 0, &core.WrapError{
+			Err:  fmt.Errorf("possibly an error: create product with id <> 0"),
+			Code: 0,
+		}
 	}
 	if p.Name == "" {
-		return 0, &core.WrapError{
-			Err:  fmt.Errorf("required field 'name' is empty"),
-			Code: core.UnknownError,
-		}
+		return 0, &core.WrapError{Err: fmt.Errorf("required field 'name' is empty"), Code: 0}
 	}
 
 	mId = p.Manufacturer.Id
@@ -159,10 +159,10 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 	if mId == 0 && p.Manufacturer.Name != "" {
 		mnfs, err := ps.FindManufacturerByName(p.Manufacturer.Name)
 		if err != nil {
-			return 0, err
+			return 0, &core.WrapError{Err: err, Code: core.SystemError}
 		}
 		if len(mnfs) > 1 {
-			return 0, fmt.Errorf("it is not possible to identify the manufacturer. found %d", len(mnfs))
+			return 0, &core.WrapError{Err: fmt.Errorf("it is not possible to identify the manufacturer. found %d", len(mnfs)), Code: 0}
 		}
 		if len(mnfs) == 1 {
 			mId = mnfs[0].Id
@@ -171,10 +171,7 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 
 	tx, err := ps.Storage.Db.Begin()
 	if err != nil {
-		return 0, &core.WrapError{
-			Err:  err,
-			Code: core.UnknownError,
-		}
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
 	if mId == 0 {
@@ -182,10 +179,7 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 		err := tx.QueryRow(sqlIns, p.Manufacturer.Name).Scan(&mId)
 		if err != nil {
 			tx.Rollback()
-			return 0, &core.WrapError{
-				Err:  err,
-				Code: core.UnknownError,
-			}
+			return 0, &core.WrapError{Err: err, Code: core.SystemError}
 		}
 	}
 
@@ -193,10 +187,7 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 	err = tx.QueryRow(sqlInsProd, p.Name, mId, p.Size.Length, p.Size.Width, p.Size.Height, p.Size.Weight, p.Size.Volume, p.Size.UsefulVolume).Scan(&pId)
 	if err != nil {
 		tx.Rollback()
-		return 0, &core.WrapError{
-			Err:  err,
-			Code: core.UnknownError,
-		}
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
 	if p.Barcodes != nil {
@@ -207,25 +198,16 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 			_, err := tx.Exec(sqlBc, pId, bc.Data, bc.Type)
 			if err != nil {
 				tx.Rollback()
-				return 0, &core.WrapError{
-					Err:  err,
-					Code: core.UnknownError,
-				}
+				return 0, &core.WrapError{Err: err, Code: core.SystemError}
 			}
 		}
 	}
 	err = tx.Commit()
 	if err != nil {
-		return 0, &core.WrapError{
-			Err:  err,
-			Code: core.UnknownError,
-		}
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
-	return pId, &core.WrapError{
-		Err:  nil,
-		Code: core.SuccessCompleted,
-	}
+	return pId, nil
 }
 
 // GetManufacturers возвращает список производителей
@@ -233,7 +215,7 @@ func (ps *ProductService) GetManufacturers() ([]Manufacturer, error) {
 	sqlMnf := "SELECT m.id, m.name FROM manufacturers m"
 	rows, err := ps.Storage.Query(sqlMnf)
 	if err != nil {
-		return nil, err
+		return nil, &core.WrapError{Err: err, Code: 0}
 	}
 	defer rows.Close()
 
@@ -250,24 +232,18 @@ func (ps *ProductService) GetManufacturers() ([]Manufacturer, error) {
 func (ps *ProductService) CreateManufacturer(m *Manufacturer) (int64, error) {
 	mId := int64(0)
 	if m.Id != 0 {
-		return 0, fmt.Errorf("possibly an error: create manufacturer with id <> 0")
+		return 0, &core.WrapError{Err: fmt.Errorf("possibly an error: create manufacturer with id <> 0"), Code: 0}
 	}
 	if m.Name == "" {
-		return 0, fmt.Errorf("required field 'name' is empty")
+		return 0, &core.WrapError{Err: fmt.Errorf("required field 'name' is empty"), Code: 0}
 	}
 
 	sqlInsProd := "INSERT INTO manufacturers (name) VALUES ($1) RETURNING id"
 	err := ps.Storage.Db.QueryRow(sqlInsProd, m.Name).Scan(&mId)
 	if err != nil {
-		return 0, &core.WrapError{
-			Err:  err,
-			Code: core.UnknownError,
-		}
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
-	return mId, &core.WrapError{
-		Err:  nil,
-		Code: core.SuccessCompleted,
-	}
+	return mId, nil
 }
 
 // FindManufacturerByName возвращает список производителей по наименованию
@@ -276,14 +252,14 @@ func (ps *ProductService) FindManufacturerByName(mnfName string) ([]Manufacturer
 	sql := "SELECT id, name FROM manufacturers WHERE name = $1"
 	rows, err := ps.Storage.Query(sql, mnfName)
 	if err != nil {
-		return nil, err
+		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 	defer rows.Close()
 	for rows.Next() {
 		m := Manufacturer{}
 		err := rows.Scan(&m.Id, &m.Name)
 		if err != nil {
-			return nil, err
+			return nil, &core.WrapError{Err: err, Code: core.SystemError}
 		}
 		retMnf = append(retMnf, m)
 	}
