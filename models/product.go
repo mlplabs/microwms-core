@@ -231,20 +231,25 @@ func (ps *ProductService) GetManufacturers() ([]Manufacturer, error) {
 
 // CreateManufacturer создает новый продукт
 func (ps *ProductService) CreateManufacturer(m *Manufacturer) (int64, error) {
-	mId := int64(0)
-	if m.Id != 0 {
-		return 0, &core.WrapError{Err: fmt.Errorf("possibly an error: create manufacturer with id <> 0"), Code: 0}
-	}
-	if m.Name == "" {
-		return 0, &core.WrapError{Err: fmt.Errorf("required field 'name' is empty"), Code: 0}
-	}
-
 	sqlInsProd := "INSERT INTO manufacturers (name) VALUES ($1) RETURNING id"
-	err := ps.Storage.Db.QueryRow(sqlInsProd, m.Name).Scan(&mId)
+	err := ps.Storage.Db.QueryRow(sqlInsProd, m.Name).Scan(&m.Id)
 	if err != nil {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
-	return mId, nil
+	return m.Id, nil
+}
+
+// UpdateManufacturer создает новый продукт
+func (ps *ProductService) UpdateManufacturer(m *Manufacturer) (int64, error) {
+	sqlUpd := "UPDATE manufacturers SET name=$2 WHERE id=$1"
+	res, err := ps.Storage.Db.Exec(sqlUpd, m.Id, m.Name)
+	if err != nil {
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	if a, err := res.RowsAffected(); a != 1 || err != nil {
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	return m.Id, nil
 }
 
 // FindManufacturerByName возвращает список производителей по наименованию
