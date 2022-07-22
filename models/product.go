@@ -208,7 +208,6 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 
 // UpdateProduct создает новый продукт
 func (ps *ProductService) UpdateProduct(p *Product) (int64, error) {
-	pId := int64(0)
 	mId := int64(0)
 
 	// сначала посмотрим производителя
@@ -267,7 +266,7 @@ func (ps *ProductService) UpdateProduct(p *Product) (int64, error) {
 			sqlBc := "INSERT INTO barcodes (product_id, barcode, barcode_type) " +
 				"VALUES($1, $2, $3) " +
 				"ON CONFLICT (product_id, barcode, barcode_type) DO UPDATE SET product_id=$1, barcode=$2, barcode_type=$3"
-			_, err := tx.Exec(sqlBc, pId, bc.Data, bc.Type)
+			_, err := tx.Exec(sqlBc, p.Id, bc.Data, bc.Type)
 			if err != nil {
 				tx.Rollback()
 				return 0, &core.WrapError{Err: err, Code: core.SystemError}
@@ -279,7 +278,7 @@ func (ps *ProductService) UpdateProduct(p *Product) (int64, error) {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
-	return pId, nil
+	return p.Id, nil
 }
 
 // GetManufacturers возвращает список производителей
