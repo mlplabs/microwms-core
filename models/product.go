@@ -92,23 +92,18 @@ func (ps *ProductService) FindProductsByBarcode(barcodeStr string) ([]Product, e
 
 	rows, err := ps.Storage.Db.Query(sqlBc, barcodeStr)
 	if err != nil {
-		return nil, &core.WrapError{Err: err, Code: core.SystemError}
+		return prods, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
 	for rows.Next() {
 		err := rows.Scan(&pId, &bcVal, &bcType)
 		if err != nil {
-			return nil, &core.WrapError{Err: err, Code: core.SystemError}
+			return prods, &core.WrapError{Err: err, Code: core.SystemError}
 		}
 		p, err := ps.FindProductById(pId)
 		if err != nil {
-			return nil, &core.WrapError{Err: err, Code: core.SystemError}
+			return prods, &core.WrapError{Err: err, Code: core.SystemError}
 		}
-		pBarcodes, err := ps.GetProductBarcodes(p.Id)
-		if err != nil {
-			return nil, &core.WrapError{Err: err, Code: core.SystemError}
-		}
-		p.Barcodes = pBarcodes
 		prods = append(prods, *p)
 	}
 
@@ -186,6 +181,82 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 
 	sqlInsProd := "INSERT INTO products (name, manufacturer_id, sz_length, sz_wight, sz_height, sz_weight, sz_volume, sz_uf_volume) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id"
 	err = tx.QueryRow(sqlInsProd, p.Name, mId, p.Size.Length, p.Size.Width, p.Size.Height, p.Size.Weight, p.Size.Volume, p.Size.UsefulVolume).Scan(&pId)
+	if err != nil {
+		tx.Rollback()
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+
+	if p.Barcodes != nil {
+		for _, bc := range p.Barcodes {
+			sqlBc := "INSERT INTO barcodes (product_id, barcode, barcode_type) " +
+				"VALUES($1, $2, $3) " +
+				"ON CONFLICT (product_id, barcode, barcode_type) DO UPDATE SET product_id=$1, barcode=$2, barcode_type=$3"
+			_, err := tx.Exec(sqlBc, pId, bc.Data, bc.Type)
+			if err != nil {
+				tx.Rollback()
+				return 0, &core.WrapError{Err: err, Code: core.SystemError}
+			}
+		}
+	}
+	err = tx.Commit()
+	if err != nil {
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+
+	return pId, nil
+}
+
+// UpdateProduct создает новый продукт
+func (ps *ProductService) UpdateProduct(p *Product) (int64, error) {
+	pId := int64(0)
+	mId := int64(0)
+
+	// сначала посмотрим производителя
+	mId = p.Manufacturer.Id
+
+	// если имя без id, то поищем сами и если будет 1, то его и возьмем
+	if mId == 0 && strings.TrimSpace(p.Manufacturer.Name) != "" {
+		mnfs, err := ps.FindManufacturerByName(p.Manufacturer.Name)
+		if err != nil {
+			return 0, &core.WrapError{Err: err, Code: core.SystemError}
+		}
+		if len(mnfs) > 1 {
+			return 0, &core.WrapError{Err: fmt.Errorf("it is not possible to identify the manufacturer. found %d", len(mnfs)), Code: core.SystemError}
+		}
+		if len(mnfs) == 1 {
+			mId = mnfs[0].Id
+		}
+	}
+
+	tx, err := ps.Storage.Db.Begin()
+	if err != nil {
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+
+	if mId == 0 {
+		sqlIns := "INSERT INTO manufacturers (name) VALUES ($1) RETURNING id"
+		err := tx.QueryRow(sqlIns, p.Manufacturer.Name).Scan(&mId)
+		if err != nil {
+			tx.Rollback()
+			return 0, &core.WrapError{Err: err, Code: core.SystemError}
+		}
+	}
+
+	sqlInsProd := "UPDATE products SET name=$2,manufacturer_id=$3,sz_length=$4,sz_wight=$5,sz_height=$6,sz_weight=$7,sz_volume=$8, sz_uf_volume=$9 WHERE id=$1"
+
+	res, err := tx.Exec(sqlInsProd, p.Id, p.Name, mId, p.Size.Length, p.Size.Width, p.Size.Height, p.Size.Weight, p.Size.Volume, p.Size.UsefulVolume)
+	if err != nil {
+		tx.Rollback()
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+
+	if a, err := res.RowsAffected(); a != 1 || err != nil {
+		tx.Rollback()
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+
+	sqlDelBc := "DELETE FROM barcodes WHERE product_id=$1"
+	res, err = tx.Exec(sqlDelBc, p.Id)
 	if err != nil {
 		tx.Rollback()
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}

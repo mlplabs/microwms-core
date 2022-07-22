@@ -15,7 +15,7 @@ func TestStorage_Init(t *testing.T) {
 	prod32 := Product{
 		Id:       32,
 		Name:     "tedst",
-		Barcodes: make(map[string]int),
+		Barcodes: make([]Barcode, 0),
 		Size:     SpecificSize{},
 	}
 
