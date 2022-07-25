@@ -47,7 +47,7 @@ func (ws *WhsService) GetWarehouses() ([]Whs, error) {
 }
 
 // GetZones возвращает список зон склада
-func (ws *WhsService) GetZones(whs Whs) ([]Zone, error) {
+func (ws *WhsService) GetZones(whs *Whs) ([]Zone, error) {
 	return ws.GetZonesByWhsId(whs.Id)
 }
 
