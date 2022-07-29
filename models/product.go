@@ -141,7 +141,7 @@ func (ps *ProductService) GetProducts(offset int, limit int) ([]Product, int, er
 		prods = append(prods, *p)
 	}
 
-	sqlCount := fmt.Sprintf("SELECT COUNT(*) as count FROM ( %s )", sqlProd)
+	sqlCount := fmt.Sprintf("SELECT COUNT(*) as count FROM ( %s ) sub", sqlProd)
 	err = ps.Storage.Db.QueryRow(sqlCount).Scan(&count)
 	if err != nil {
 		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
