@@ -111,9 +111,15 @@ func (ps *ProductService) FindProductsByBarcode(barcodeStr string) ([]Product, e
 }
 
 // GetProducts возвращает список продуктов
-func (ps *ProductService) GetProducts() ([]Product, error) {
-	sqlProd := "SELECT p.id, p.name, p.manufacturer_id, m.name FROM products p LEFT JOIN manufacturers m ON p.manufacturer_id = m.id"
-	rows, err := ps.Storage.Query(sqlProd)
+func (ps *ProductService) GetProducts(offset int, limit int) ([]Product, error) {
+	sqlProd := "SELECT p.id, p.name, p.manufacturer_id, m.name FROM products p " +
+		"		LEFT JOIN manufacturers m ON p.manufacturer_id = m.id" +
+		"		ORDER BY p.name ASC LIMIT $1 OFFSET $2"
+
+	if limit == 0 {
+		limit = 10
+	}
+	rows, err := ps.Storage.Query(sqlProd, limit, offset)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
