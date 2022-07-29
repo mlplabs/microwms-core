@@ -111,7 +111,9 @@ func (ps *ProductService) FindProductsByBarcode(barcodeStr string) ([]Product, e
 }
 
 // GetProducts возвращает список продуктов
-func (ps *ProductService) GetProducts(offset int, limit int) ([]Product, error) {
+func (ps *ProductService) GetProducts(offset int, limit int) ([]Product, int64, error) {
+	var count int64
+
 	sqlProd := "SELECT p.id, p.name, p.manufacturer_id, m.name FROM products p " +
 		"		LEFT JOIN manufacturers m ON p.manufacturer_id = m.id" +
 		"		ORDER BY p.name ASC LIMIT $1 OFFSET $2"
@@ -121,24 +123,30 @@ func (ps *ProductService) GetProducts(offset int, limit int) ([]Product, error) 
 	}
 	rows, err := ps.Storage.Query(sqlProd, limit, offset)
 	if err != nil {
-		return nil, &core.WrapError{Err: err, Code: core.SystemError}
+		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 	defer rows.Close()
 
-	prods := make([]Product, 0, 10)
+	prods := make([]Product, count, 10)
 	for rows.Next() {
 		p := new(Product)
 		err = rows.Scan(&p.Id, &p.Name, &p.Manufacturer.Id, &p.Manufacturer.Name)
 
 		pBarcodes, err := ps.GetProductBarcodes(p.Id) // пока так
 		if err != nil {
-			return nil, &core.WrapError{Err: err, Code: core.SystemError}
+			return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 		}
 		p.Barcodes = pBarcodes
 
 		prods = append(prods, *p)
 	}
-	return prods, nil
+
+	sqlCount := fmt.Sprintf("SELECT COUNT(*) as count FROM ( %s )", sqlProd)
+	err = ps.Storage.Db.QueryRow(sqlCount).Scan(&count)
+	if err != nil {
+		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	return prods, count, nil
 }
 
 // CreateProduct создает новый продукт
