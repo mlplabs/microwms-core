@@ -116,12 +116,12 @@ func (ps *ProductService) GetProducts(offset int, limit int) ([]Product, int, er
 
 	sqlProd := "SELECT p.id, p.name, p.manufacturer_id, m.name FROM products p " +
 		"		LEFT JOIN manufacturers m ON p.manufacturer_id = m.id" +
-		"		ORDER BY p.name ASC LIMIT $1 OFFSET $2"
+		"		ORDER BY p.name ASC"
 
 	if limit == 0 {
 		limit = 10
 	}
-	rows, err := ps.Storage.Query(sqlProd, limit, offset)
+	rows, err := ps.Storage.Query(sqlProd+" LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 	}
