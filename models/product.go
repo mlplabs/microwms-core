@@ -382,3 +382,30 @@ func (ps *ProductService) GetSuggestionProducts(text string, limit int) ([]strin
 	}
 	return retVal, err
 }
+
+func (ps *ProductService) GetSuggestionManufacturers(text string, limit int) ([]string, error) {
+	retVal := make([]string, 0)
+
+	if strings.TrimSpace(text) == "" {
+		return retVal, &core.WrapError{Err: fmt.Errorf("invalid search text "), Code: core.SystemError}
+	}
+	if limit == 0 {
+		limit = 10
+	}
+
+	sql := "SELECT name FROM manufacturers WHERE name LIKE $1 LIMIT $2"
+	rows, err := ps.Storage.Query(sql, text+"%", limit)
+	if err != nil {
+		return retVal, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	defer rows.Close()
+	for rows.Next() {
+		s := ""
+		err := rows.Scan(&s)
+		if err != nil {
+			return retVal, &core.WrapError{Err: err, Code: core.SystemError}
+		}
+		retVal = append(retVal, s)
+	}
+	return retVal, err
+}
