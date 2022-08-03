@@ -295,6 +295,19 @@ func (ps *ProductService) UpdateProduct(p *Product) (int64, error) {
 	return p.Id, nil
 }
 
+func (ps *ProductService) DeleteProduct(p *Product) (int64, error) {
+	sqlDel := "DELETE FROM products WHERE id=$1"
+	res, err := ps.Storage.Db.Exec(sqlDel, p.Id)
+	if err != nil {
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	affRows, err := res.RowsAffected()
+	if err != nil {
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	return affRows, nil
+}
+
 // GetManufacturers возвращает список производителей
 func (ps *ProductService) GetManufacturers() ([]Manufacturer, error) {
 	sqlMnf := "SELECT m.id, m.name FROM manufacturers m"
