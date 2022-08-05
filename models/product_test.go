@@ -12,8 +12,8 @@ func TestStorage_FindProductById(t *testing.T) {
 	defer db.Close()
 
 	// нашли товар по Id
-	rowsBc := sqlmock.NewRows([]string{"barcode", "barcode_type"})
-	rowsBc.AddRow("123456789", 1)
+	rowsBc := sqlmock.NewRows([]string{"id", "barcode", "barcode_type"})
+	rowsBc.AddRow(1, "123456789", 1)
 
 	rows := sqlmock.NewRows([]string{"id", "name", "manufacturer_id", "manufacturer_name"})
 	rows.AddRow(1, "test 1", 1, "Pfizer")
@@ -136,12 +136,12 @@ func TestStorage_FindProductsByBarcode(t *testing.T) {
 		WillReturnRows(rows)
 
 	// все штрихкоды для товара
-	rowsBcs := sqlmock.NewRows([]string{"barcode", "barcode_type"})
-	rowsBcs.AddRow(bc, 1)
-	rowsBcs.AddRow("45324523454235", 2)
-	rowsBcs.AddRow("65745674567456", 3)
+	rowsBcs := sqlmock.NewRows([]string{"id", "barcode", "barcode_type"})
+	rowsBcs.AddRow(10, bc, 1)
+	rowsBcs.AddRow(10, "45324523454235", 2)
+	rowsBcs.AddRow(10, "65745674567456", 3)
 
-	mock.ExpectQuery("^SELECT barcode, barcode_type FROM barcodes WHERE product_id*").
+	mock.ExpectQuery("^SELECT id, barcode, barcode_type FROM barcodes WHERE product_id*").
 		WillReturnRows(rowsBcs)
 
 	p, err = ps.FindProductsByBarcode(bc)
@@ -167,10 +167,10 @@ func TestStorage_FindProductsByBarcode(t *testing.T) {
 		WillReturnRows(rows)
 
 	// все штрихкоды для товара 1
-	rowsBcs = sqlmock.NewRows([]string{"barcode", "barcode_type"})
-	rowsBcs.AddRow(bc, 1)
-	rowsBcs.AddRow("1_45324523454235", 2)
-	rowsBcs.AddRow("1_65745674567456", 3)
+	rowsBcs = sqlmock.NewRows([]string{"id", "barcode", "barcode_type"})
+	rowsBcs.AddRow(10, bc, 1)
+	rowsBcs.AddRow(10, "1_45324523454235", 2)
+	rowsBcs.AddRow(10, "1_65745674567456", 3)
 
 	mock.ExpectQuery("^SELECT (.+) FROM barcodes").
 		WillReturnRows(rowsBcs)
@@ -182,10 +182,10 @@ func TestStorage_FindProductsByBarcode(t *testing.T) {
 		WillReturnRows(rows)
 
 	// все штрихкоды для товара
-	rowsBcs = sqlmock.NewRows([]string{"barcode", "barcode_type"})
-	rowsBcs.AddRow(bc, 1)
-	rowsBcs.AddRow("2_45324523454235", 2)
-	rowsBcs.AddRow("2_ 65745674567456", 3)
+	rowsBcs = sqlmock.NewRows([]string{"id", "barcode", "barcode_type"})
+	rowsBcs.AddRow(11, bc, 1)
+	rowsBcs.AddRow(11, "2_45324523454235", 2)
+	rowsBcs.AddRow(11, "2_ 65745674567456", 3)
 
 	mock.ExpectQuery("^SELECT (.+) FROM barcodes").
 		WillReturnRows(rowsBcs)

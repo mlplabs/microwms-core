@@ -73,8 +73,28 @@ func (ps *ProductService) FindBarcodeById(bcId int64) (*Barcode, error) {
 // только по значению без типа и привязки
 func (ps *ProductService) FindBarcodesByName(bcName string) ([]Barcode, error) {
 	retBc := make([]Barcode, 0)
-	sql := "SELECT id, name, type, product_id FROM products WHERE name = $1"
+	sql := "SELECT id, name, type, product_id FROM barcodes WHERE name = $1"
 	rows, err := ps.Storage.Query(sql, bcName)
+	if err != nil {
+		return nil, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	defer rows.Close()
+	for rows.Next() {
+		b := Barcode{}
+		err := rows.Scan(&b.Id, &b.Name, &b.Type, &b.ProdId)
+		if err != nil {
+			return nil, &core.WrapError{Err: err, Code: core.SystemError}
+		}
+		retBc = append(retBc, b)
+	}
+	return retBc, nil
+}
+
+// FindBarcodesByProdId возвращает список штрих-кодов по товару (владельцу)
+func (ps *ProductService) FindBarcodesByProdId(prodId int64) ([]Barcode, error) {
+	retBc := make([]Barcode, 0)
+	sql := "SELECT id, name, type, product_id FROM products WHERE name = $1"
+	rows, err := ps.Storage.Query(sql, prodId)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
