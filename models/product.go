@@ -15,12 +15,6 @@ type Product struct {
 	Size         SpecificSize `json:"size"`
 }
 
-// Barcode объект штрих-кода
-type Barcode struct {
-	Data string `json:"data"`
-	Type int    `json:"type"`
-}
-
 type ProductService struct {
 	Storage *Storage
 }
@@ -81,7 +75,7 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 			sqlBc := "INSERT INTO barcodes (product_id, barcode, barcode_type) " +
 				"VALUES($1, $2, $3) " +
 				"ON CONFLICT (product_id, barcode, barcode_type) DO UPDATE SET product_id=$1, barcode=$2, barcode_type=$3"
-			_, err := tx.Exec(sqlBc, pId, bc.Data, bc.Type)
+			_, err := tx.Exec(sqlBc, pId, bc.Name, bc.Type)
 			if err != nil {
 				tx.Rollback()
 				return 0, &core.WrapError{Err: err, Code: core.SystemError}
@@ -98,11 +92,12 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 
 // GetProductBarcodes возвращает список штрих-кодов продукта
 func (ps *ProductService) GetProductBarcodes(productId int64) ([]Barcode, error) {
+	var id int64
 	var bcVal string
 	var bcType int
 	bcArr := make([]Barcode, 0, 0)
 
-	sqlBc := "SELECT barcode, barcode_type FROM barcodes WHERE product_id = $1"
+	sqlBc := "SELECT id, barcode, barcode_type FROM barcodes WHERE product_id = $1"
 	rows, err := ps.Storage.Db.Query(sqlBc, productId)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
@@ -110,13 +105,15 @@ func (ps *ProductService) GetProductBarcodes(productId int64) ([]Barcode, error)
 	defer rows.Close()
 
 	for rows.Next() {
-		err := rows.Scan(&bcVal, &bcType)
+		err := rows.Scan(&id, &bcVal, &bcType)
 		if err != nil {
 			return nil, &core.WrapError{Err: err, Code: core.SystemError}
 		}
 		b := Barcode{
+			id,
 			bcVal,
 			bcType,
+			productId,
 		}
 		bcArr = append(bcArr, b)
 	}
@@ -301,7 +298,7 @@ func (ps *ProductService) UpdateProduct(p *Product) (int64, error) {
 			sqlBc := "INSERT INTO barcodes (product_id, barcode, barcode_type) " +
 				"VALUES($1, $2, $3) " +
 				"ON CONFLICT (product_id, barcode, barcode_type) DO UPDATE SET product_id=$1, barcode=$2, barcode_type=$3"
-			_, err := tx.Exec(sqlBc, p.Id, bc.Data, bc.Type)
+			_, err := tx.Exec(sqlBc, p.Id, bc.Name, bc.Type)
 			if err != nil {
 				tx.Rollback()
 				return 0, &core.WrapError{Err: err, Code: core.SystemError}
