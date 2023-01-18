@@ -16,7 +16,6 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
-DROP DATABASE IF EXISTS wmsdb;
 --
 -- Name: wmsdb; Type: DATABASE; Schema: -; Owner: devuser
 --
@@ -50,11 +49,34 @@ SET default_table_access_method = heap;
 CREATE TABLE public.barcodes (
     product_id integer,
     barcode character varying(128) DEFAULT ''::character varying NOT NULL,
-    barcode_type integer NOT NULL
+    barcode_type integer NOT NULL,
+    id integer NOT NULL
 );
 
 
 ALTER TABLE public.barcodes OWNER TO devuser;
+
+--
+-- Name: barcodes_id_seq; Type: SEQUENCE; Schema: public; Owner: devuser
+--
+
+CREATE SEQUENCE public.barcodes_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.barcodes_id_seq OWNER TO devuser;
+
+--
+-- Name: barcodes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: devuser
+--
+
+ALTER SEQUENCE public.barcodes_id_seq OWNED BY public.barcodes.id;
+
 
 --
 -- Name: cells; Type: TABLE; Schema: public; Owner: devuser
@@ -153,7 +175,8 @@ CREATE TABLE public.products (
     sz_height integer DEFAULT 0 NOT NULL,
     sz_weight numeric(8,3) DEFAULT 0 NOT NULL,
     sz_volume numeric(8,3) DEFAULT 0 NOT NULL,
-    sz_uf_volume numeric(8,3) DEFAULT 0 NOT NULL
+    sz_uf_volume numeric(8,3) DEFAULT 0 NOT NULL,
+    item_number character varying(50) DEFAULT ''::character varying NOT NULL
 );
 
 
@@ -266,6 +289,13 @@ ALTER SEQUENCE public.zones_id_seq OWNED BY public.zones.id;
 
 
 --
+-- Name: barcodes id; Type: DEFAULT; Schema: public; Owner: devuser
+--
+
+ALTER TABLE ONLY public.barcodes ALTER COLUMN id SET DEFAULT nextval('public.barcodes_id_seq'::regclass);
+
+
+--
 -- Name: cells id; Type: DEFAULT; Schema: public; Owner: devuser
 --
 
@@ -304,8 +334,28 @@ ALTER TABLE ONLY public.zones ALTER COLUMN id SET DEFAULT nextval('public.zones_
 -- Data for Name: barcodes; Type: TABLE DATA; Schema: public; Owner: devuser
 --
 
-COPY public.barcodes (product_id, barcode, barcode_type) FROM stdin;
-2	1234567890	3
+COPY public.barcodes (product_id, barcode, barcode_type, id) FROM stdin;
+18	110 123456sw78901	3	1
+18	110 0045f36782901	2	2
+11	123456sw78901	3	3
+11	0045f36782901	2	4
+9	12345678901	3	5
+9	0045678901	2	6
+16	110 123456sw78901	3	7
+16	110 0045f36782901	2	8
+15	12345611278901	3	9
+15	0045f36112782901	2	10
+13	123456sw78901	3	11
+13	0045f36782901	2	12
+14	123456sw78901	3	13
+14	0045f36782901	2	14
+17	110 123456sw78901	3	15
+17	110 0045f36782901	2	16
+10	123456s78901	3	17
+10	0045f3678901	2	18
+2	1234567890	3	19
+20	123456sw78901	3	20
+20	0045f36782901	2	21
 \.
 
 
@@ -324,8 +374,23 @@ COPY public.cells (id, name, whs_id, zone_id, passage_id, rack_id, floor, sz_len
 --
 
 COPY public.manufacturers (id, name) FROM stdin;
-1	Pfizer
-2	fdgsdf
+6	Pfizer 2
+10	Pfizer 42
+11	Китай
+12	DEKO
+13	Shenzhen Xunlong Software
+14	OUIO
+15	SanDisk
+16	FNIRSI
+18	КАЛИБР
+19	РОСТЕРМ
+20	UNIEL
+21	СВАРИС
+22	Lexman
+7	Pfizer 334
+17	Axton
+8	Pfizer 4555
+1	Pfizer 0
 \.
 
 
@@ -333,9 +398,17 @@ COPY public.manufacturers (id, name) FROM stdin;
 -- Data for Name: products; Type: TABLE DATA; Schema: public; Owner: devuser
 --
 
-COPY public.products (id, name, manufacturer_id, sz_length, sz_wight, sz_height, sz_weight, sz_volume, sz_uf_volume) FROM stdin;
-2	Тестовый продукт	1	0	0	0	0.000	0.000	0.000
-4	test 	2	0	0	0	0.000	0.000	0.000
+COPY public.products (id, name, manufacturer_id, sz_length, sz_wight, sz_height, sz_weight, sz_volume, sz_uf_volume, item_number) FROM stdin;
+9	Набор отверток DKMT65 065-0223	12	0	0	0	0.000	0.000	0.000	
+16	Orange Pi Zero 512MB H3	13	0	0	0	0.000	0.000	0.000	
+15	Карта памяти Micro SD 32Gb class 10	14	0	0	0	0.000	0.000	0.000	
+13	Карта памяти Micro SD 64Gb class 10	15	0	0	0	0.000	0.000	0.000	
+14	Осциллограф FNIRSI-1013D	16	0	0	0	0.000	0.000	0.000	
+10	Упор противооткатной 120х80х70 мм	18	0	0	0	0.000	0.000	0.000	
+19	Редуктор давления РДСГ 1-1.2	19	0	0	0	0.000	0.000	0.000	
+2	Патрон керамический Uniel GU4/GU5.3	20	0	0	0	0.000	0.000	0.000	
+20	Припой Сварис ПОС-61, D1 мм, катушка, с канифолью 50 г	21	0	0	0	0.000	0.000	0.000	
+21	Лампа светодиодная Lexman Clear G5.3 250В 6 Вт прозрачная нейтральный белый	22	0	0	0	0.000	0.000	0.000	
 \.
 
 
@@ -368,6 +441,7 @@ COPY public.storage1 (zone_id, cell_id, prod_id, quantity) FROM stdin;
 --
 
 COPY public.whs (id, name) FROM stdin;
+1	мой склад
 \.
 
 
@@ -377,6 +451,13 @@ COPY public.whs (id, name) FROM stdin;
 
 COPY public.zones (id, name, whs_id, zone_type) FROM stdin;
 \.
+
+
+--
+-- Name: barcodes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
+--
+
+SELECT pg_catalog.setval('public.barcodes_id_seq', 21, true);
 
 
 --
@@ -390,21 +471,21 @@ SELECT pg_catalog.setval('public.cells_id_seq', 2, true);
 -- Name: manufacturers_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
 --
 
-SELECT pg_catalog.setval('public.manufacturers_id_seq', 1, true);
+SELECT pg_catalog.setval('public.manufacturers_id_seq', 23, true);
 
 
 --
 -- Name: products_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
 --
 
-SELECT pg_catalog.setval('public.products_id_seq', 4, true);
+SELECT pg_catalog.setval('public.products_id_seq', 21, true);
 
 
 --
 -- Name: whs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
 --
 
-SELECT pg_catalog.setval('public.whs_id_seq', 1, false);
+SELECT pg_catalog.setval('public.whs_id_seq', 1, true);
 
 
 --
@@ -412,6 +493,14 @@ SELECT pg_catalog.setval('public.whs_id_seq', 1, false);
 --
 
 SELECT pg_catalog.setval('public.zones_id_seq', 1, false);
+
+
+--
+-- Name: barcodes barcodes_pk; Type: CONSTRAINT; Schema: public; Owner: devuser
+--
+
+ALTER TABLE ONLY public.barcodes
+    ADD CONSTRAINT barcodes_pk PRIMARY KEY (id);
 
 
 --
@@ -455,10 +544,10 @@ ALTER TABLE ONLY public.zones
 
 
 --
--- Name: barcodes_barcode_uindex; Type: INDEX; Schema: public; Owner: devuser
+-- Name: barcodes_product_id_barcode_barcode_type_uindex; Type: INDEX; Schema: public; Owner: devuser
 --
 
-CREATE UNIQUE INDEX barcodes_barcode_uindex ON public.barcodes USING btree (barcode);
+CREATE UNIQUE INDEX barcodes_product_id_barcode_barcode_type_uindex ON public.barcodes USING btree (product_id, barcode, barcode_type);
 
 
 --
