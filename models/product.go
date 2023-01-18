@@ -10,6 +10,7 @@ import (
 type Product struct {
 	Id           int64        `json:"id"`
 	Name         string       `json:"name"`
+	ItemNumber   string       `json:"item_number"`
 	Barcodes     []Barcode    `json:"barcodes"`
 	Manufacturer Manufacturer `json:"manufacturer"`
 	Size         SpecificSize `json:"size"`
@@ -63,8 +64,8 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 		}
 	}
 
-	sqlInsProd := "INSERT INTO products (name, manufacturer_id, sz_length, sz_wight, sz_height, sz_weight, sz_volume, sz_uf_volume) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id"
-	err = tx.QueryRow(sqlInsProd, p.Name, mId, p.Size.Length, p.Size.Width, p.Size.Height, p.Size.Weight, p.Size.Volume, p.Size.UsefulVolume).Scan(&pId)
+	sqlInsProd := "INSERT INTO products (name, item_number, manufacturer_id, sz_length, sz_wight, sz_height, sz_weight, sz_volume, sz_uf_volume) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id"
+	err = tx.QueryRow(sqlInsProd, p.Name, p.ItemNumber, mId, p.Size.Length, p.Size.Width, p.Size.Height, p.Size.Weight, p.Size.Volume, p.Size.UsefulVolume).Scan(&pId)
 	if err != nil {
 		tx.Rollback()
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
@@ -151,13 +152,13 @@ func (ps *ProductService) GetSuggestionProducts(text string, limit int) ([]strin
 // FindProductById возвращает продукт по внутреннему идентификатору
 func (ps *ProductService) FindProductById(productId int64) (*Product, error) {
 
-	sqlCell := "SELECT p.id, p.name, p.manufacturer_id, m.name as manufacturer_name " +
+	sqlCell := "SELECT p.id, p.name, p.item_number, p.manufacturer_id, m.name as manufacturer_name " +
 		"FROM products p " +
 		"LEFT JOIN manufacturers m ON p.manufacturer_id = m.id " +
 		"WHERE p.id = $1"
 	row := ps.Storage.Db.QueryRow(sqlCell, productId)
 	p := new(Product)
-	err := row.Scan(&p.Id, &p.Name, &p.Manufacturer.Id, &p.Manufacturer.Name)
+	err := row.Scan(&p.Id, &p.Name, &p.ItemNumber, &p.Manufacturer.Id, &p.Manufacturer.Name)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -203,7 +204,7 @@ func (ps *ProductService) FindProductsByBarcode(barcodeStr string) ([]Product, e
 func (ps *ProductService) GetProducts(offset int, limit int) ([]Product, int, error) {
 	var count int
 
-	sqlProd := "SELECT p.id, p.name, p.manufacturer_id, m.name FROM products p " +
+	sqlProd := "SELECT p.id, p.name, p.item_number, p.manufacturer_id, m.name FROM products p " +
 		"		LEFT JOIN manufacturers m ON p.manufacturer_id = m.id" +
 		"		ORDER BY p.name ASC"
 
@@ -219,7 +220,7 @@ func (ps *ProductService) GetProducts(offset int, limit int) ([]Product, int, er
 	prods := make([]Product, count, 10)
 	for rows.Next() {
 		p := new(Product)
-		err = rows.Scan(&p.Id, &p.Name, &p.Manufacturer.Id, &p.Manufacturer.Name)
+		err = rows.Scan(&p.Id, &p.Name, &p.ItemNumber, &p.Manufacturer.Id, &p.Manufacturer.Name)
 
 		pBarcodes, err := ps.GetProductBarcodes(p.Id) // пока так
 		if err != nil {
@@ -273,9 +274,9 @@ func (ps *ProductService) UpdateProduct(p *Product) (int64, error) {
 		}
 	}
 
-	sqlInsProd := "UPDATE products SET name=$2,manufacturer_id=$3,sz_length=$4,sz_wight=$5,sz_height=$6,sz_weight=$7,sz_volume=$8, sz_uf_volume=$9 WHERE id=$1"
+	sqlInsProd := "UPDATE products SET name=$2,manufacturer_id=$3,sz_length=$4,sz_wight=$5,sz_height=$6,sz_weight=$7,sz_volume=$8, sz_uf_volume=$9, item_number=$10 WHERE id=$1"
 
-	res, err := tx.Exec(sqlInsProd, p.Id, p.Name, mId, p.Size.Length, p.Size.Width, p.Size.Height, p.Size.Weight, p.Size.Volume, p.Size.UsefulVolume)
+	res, err := tx.Exec(sqlInsProd, p.Id, p.Name, mId, p.Size.Length, p.Size.Width, p.Size.Height, p.Size.Weight, p.Size.Volume, p.Size.UsefulVolume, p.ItemNumber)
 	if err != nil {
 		tx.Rollback()
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}

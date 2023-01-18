@@ -15,8 +15,8 @@ func TestStorage_FindProductById(t *testing.T) {
 	rowsBc := sqlmock.NewRows([]string{"id", "barcode", "barcode_type"})
 	rowsBc.AddRow(1, "123456789", 1)
 
-	rows := sqlmock.NewRows([]string{"id", "name", "manufacturer_id", "manufacturer_name"})
-	rows.AddRow(1, "test 1", 1, "Pfizer")
+	rows := sqlmock.NewRows([]string{"id", "name", "item_number", "manufacturer_id", "manufacturer_name"})
+	rows.AddRow(1, "test 1", "", 1, "Pfizer")
 
 	mock.ExpectQuery("^SELECT (.+) FROM products").
 		WillReturnRows(rows)
@@ -130,8 +130,8 @@ func TestStorage_FindProductsByBarcode(t *testing.T) {
 	mock.ExpectQuery("^SELECT product_id, barcode, barcode_type FROM barcodes*").
 		WillReturnRows(rowsBc)
 
-	rows = sqlmock.NewRows([]string{"id", "name", "manufacturer_id", "manufacturer_name"})
-	rows.AddRow(10, "Тест продукт", 1, "производитель")
+	rows = sqlmock.NewRows([]string{"id", "name", "item_number", "manufacturer_id", "manufacturer_name"})
+	rows.AddRow(10, "Тест продукт", "", 1, "производитель")
 	mock.ExpectQuery("^SELECT (.+) FROM products").
 		WillReturnRows(rows)
 
@@ -161,8 +161,8 @@ func TestStorage_FindProductsByBarcode(t *testing.T) {
 		WillReturnRows(rowsBc)
 
 	// первый товар
-	rows = sqlmock.NewRows([]string{"id", "name", "manufacturer_id", "manufacturer_name"})
-	rows.AddRow(10, "Тест продукт", 1, "производитель")
+	rows = sqlmock.NewRows([]string{"id", "name", "item_number", "manufacturer_id", "manufacturer_name"})
+	rows.AddRow(10, "Тест продукт", "", 1, "производитель")
 	mock.ExpectQuery("^SELECT (.+) FROM products").
 		WillReturnRows(rows)
 
@@ -176,8 +176,8 @@ func TestStorage_FindProductsByBarcode(t *testing.T) {
 		WillReturnRows(rowsBcs)
 
 	// второй товар
-	rows = sqlmock.NewRows([]string{"id", "name", "manufacturer_id", "manufacturer_name"})
-	rows.AddRow(11, "Тест продукт 2", 1, "производитель")
+	rows = sqlmock.NewRows([]string{"id", "name", "item_number", "manufacturer_id", "manufacturer_name"})
+	rows.AddRow(11, "Тест продукт 2", "", 1, "производитель")
 	mock.ExpectQuery("^SELECT (.+) FROM products").
 		WillReturnRows(rows)
 
