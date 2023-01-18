@@ -8,7 +8,7 @@ const (
 	ZoneTypeIncoming
 	// ZoneTypeOutGoing - тип зоны: отгрузка
 	ZoneTypeOutGoing
-	ZoneTypeCustom = 99
+	ZoneTypeCustom = 999
 )
 
 // Zone - зона склада

@@ -8,6 +8,7 @@ type Cell struct {
 	Name          string       `json:"name"`
 	WhsId         int          `json:"whs_id"`     // Id склада (может быть именован)
 	ZoneId        int          `json:"zone_id"`    // Id зоны назначения (может быть именован)
+	SectionId     int          `json:"section_id"` // Id секции/блока (может быть именован)
 	PassageId     int          `json:"passage_id"` // Id проезда (может быть именован)
 	RackId        int          `json:"rack_id"`    // Id стеллажа (может быть именован)
 	Floor         int          `json:"floor"`
