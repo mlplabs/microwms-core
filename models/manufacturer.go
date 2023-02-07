@@ -12,11 +12,13 @@ func (ps *ProductService) GetManufacturers(offset int, limit int) ([]Manufacture
 		return nil, 0, err
 	}
 	retVal := make([]Manufacturer, len(items))
-	for _, item := range items {
+
+	for idx, item := range items {
 		u := new(Manufacturer)
 		u.RefItem = item
-		retVal = append(retVal, *u)
+		retVal[idx] = *u
 	}
+
 	return retVal, count, nil
 }
 
