@@ -49,7 +49,7 @@ func (r *Reference) deleteItem(db *sql.DB, id int64) (int64, error) {
 }
 
 func (r *Reference) findItemById(db *sql.DB, id int64) (*RefItem, error) {
-	sqlUsr := fmt.Sprintf("SELECT id, name FROM %s WHERE m.id = $1", r.Name)
+	sqlUsr := fmt.Sprintf("SELECT id, name FROM %s WHERE id = $1", r.Name)
 	row := db.QueryRow(sqlUsr, id)
 	u := new(RefItem)
 	err := row.Scan(&u.Id, &u.Name)
