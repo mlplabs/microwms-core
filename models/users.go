@@ -49,9 +49,10 @@ func (ps *UserService) GetUsers(offset int, limit int) ([]User, int, error) {
 // FindUserById возвращает пользователя по внутреннему идентификатору
 func (ps *UserService) FindUserById(usrId int64) (*User, error) {
 	item, err := ps.findItemById(ps.Storage.Db, usrId)
-	u := new(User)
+	//u := new(User)
+	u := User{}
 	u.RefItem = *item
-	return u, err
+	return &u, err
 }
 
 // FindUserByName возвращает пользователя по наименованию
