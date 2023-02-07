@@ -90,6 +90,7 @@ func (s *Storage) GetCellService() *CellService {
 func (s *Storage) GetUserService() *UserService {
 	us := new(UserService)
 	us.Storage = s
+	us.Name = "users"
 	return us
 }
 
