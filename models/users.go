@@ -99,7 +99,7 @@ func (ps *UserService) UpdateUser(u *User) (int64, error) {
 	return u.Id, nil
 }
 
-func (ps *UserService) GetSuggestionManufacturers(text string, limit int) ([]string, error) {
+func (ps *UserService) GetSuggestionUser(text string, limit int) ([]string, error) {
 	retVal := make([]string, 0)
 
 	if strings.TrimSpace(text) == "" {
