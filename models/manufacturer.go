@@ -5,9 +5,13 @@ type Manufacturer struct {
 	RefItem
 }
 
+type ReferenceManufacturers struct {
+	Reference
+}
+
 // GetManufacturers возвращает список производителей
-func (ps *ProductService) GetManufacturers(offset int, limit int) ([]Manufacturer, int, error) {
-	items, count, err := ps.getItems(ps.Storage.Db, offset, limit)
+func (ref *ReferenceManufacturers) GetManufacturers(offset int, limit int) ([]Manufacturer, int, error) {
+	items, count, err := ref.getItems(offset, limit)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -23,16 +27,16 @@ func (ps *ProductService) GetManufacturers(offset int, limit int) ([]Manufacture
 }
 
 // FindManufacturerById возвращает производителя по внутреннему идентификатору
-func (ps *ProductService) FindManufacturerById(mnfId int64) (*Manufacturer, error) {
-	item, err := ps.findItemById(ps.Storage.Db, mnfId)
+func (ref *ReferenceManufacturers) FindManufacturerById(mnfId int64) (*Manufacturer, error) {
+	item, err := ref.findItemById(mnfId)
 	u := new(Manufacturer)
 	u.RefItem = *item
 	return u, err
 }
 
 // FindManufacturerByName возвращает список производителей по наименованию
-func (ps *ProductService) FindManufacturerByName(valName string) ([]Manufacturer, error) {
-	items, err := ps.findItemByName(ps.Storage.Db, valName)
+func (ref *ReferenceManufacturers) FindManufacturerByName(valName string) ([]Manufacturer, error) {
+	items, err := ref.findItemByName(valName)
 	if err != nil {
 		return nil, err
 	}
@@ -45,22 +49,22 @@ func (ps *ProductService) FindManufacturerByName(valName string) ([]Manufacturer
 	return retVal, err
 }
 
-func (ps *ProductService) GetSuggestionManufacturers(text string, limit int) ([]string, error) {
-	return ps.getSuggestion(ps.Storage.Db, text, limit)
+func (ref *ReferenceManufacturers) GetSuggestionManufacturers(text string, limit int) ([]string, error) {
+	return ref.getSuggestion(text, limit)
 }
 
 // CreateManufacturer создает нового производителя
-func (ps *ProductService) CreateManufacturer(m *Manufacturer) (int64, error) {
-	return ps.createItem(ps.Storage.Db, m)
+func (ref *ReferenceManufacturers) CreateManufacturer(m *Manufacturer) (int64, error) {
+	return ref.createItem(m)
 }
 
 // UpdateManufacturer обновляет производителя
-func (ps *ProductService) UpdateManufacturer(m *Manufacturer) (int64, error) {
-	return ps.updateItem(ps.Storage.Db, m)
+func (ref *ReferenceManufacturers) UpdateManufacturer(m *Manufacturer) (int64, error) {
+	return ref.updateItem(m)
 }
 
 // DeleteManufacturer удаляет производителя
-func (ps *ProductService) DeleteManufacturer(m *Manufacturer) (int64, error) {
-	return ps.deleteItem(ps.Storage.Db, m.Id)
+func (ref *ReferenceManufacturers) DeleteManufacturer(m *Manufacturer) (int64, error) {
+	return ref.deleteItem(m.Id)
 
 }

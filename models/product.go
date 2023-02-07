@@ -21,8 +21,12 @@ type ProductService struct {
 	Reference
 }
 
+type ReferenceProducts struct {
+	Reference
+}
+
 // CreateProduct создает новый продукт
-func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
+func (ref *ReferenceProducts) CreateProduct(p *Product) (int64, error) {
 	pId := int64(0)
 	mId := int64(0)
 
@@ -39,7 +43,7 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 	mId = p.Manufacturer.Id
 
 	if mId == 0 && strings.TrimSpace(p.Manufacturer.Name) != "" {
-		mnfs, err := ps.FindManufacturerByName(p.Manufacturer.Name)
+		mnfs, err := ref.FindManufacturerByName(p.Manufacturer.Name)
 		if err != nil {
 			return 0, &core.WrapError{Err: err, Code: core.SystemError}
 		}
@@ -51,7 +55,7 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 		}
 	}
 
-	tx, err := ps.Storage.Db.Begin()
+	tx, err := ref.Db.Begin()
 	if err != nil {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -93,14 +97,14 @@ func (ps *ProductService) CreateProduct(p *Product) (int64, error) {
 }
 
 // GetProductBarcodes возвращает список штрих-кодов продукта
-func (ps *ProductService) GetProductBarcodes(productId int64) ([]Barcode, error) {
+func (ref *ReferenceProducts) GetProductBarcodes(productId int64) ([]Barcode, error) {
 	var id int64
 	var bcVal string
 	var bcType int
 	bcArr := make([]Barcode, 0, 0)
 
 	sqlBc := "SELECT id, barcode, barcode_type FROM barcodes WHERE product_id = $1"
-	rows, err := ps.Storage.Db.Query(sqlBc, productId)
+	rows, err := ref.Db.Query(sqlBc, productId)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -124,20 +128,20 @@ func (ps *ProductService) GetProductBarcodes(productId int64) ([]Barcode, error)
 }
 
 // FindProductById возвращает продукт по внутреннему идентификатору
-func (ps *ProductService) FindProductById(productId int64) (*Product, error) {
+func (ref *ReferenceProducts) FindProductById(productId int64) (*Product, error) {
 
 	sqlCell := "SELECT p.id, p.name, p.item_number, p.manufacturer_id, m.name as manufacturer_name " +
 		"FROM products p " +
 		"LEFT JOIN manufacturers m ON p.manufacturer_id = m.id " +
 		"WHERE p.id = $1"
-	row := ps.Storage.Db.QueryRow(sqlCell, productId)
+	row := ref.Db.QueryRow(sqlCell, productId)
 	p := new(Product)
 	err := row.Scan(&p.Id, &p.Name, &p.ItemNumber, &p.Manufacturer.Id, &p.Manufacturer.Name)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
-	pBarcodes, err := ps.GetProductBarcodes(p.Id)
+	pBarcodes, err := ref.GetProductBarcodes(p.Id)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -146,7 +150,7 @@ func (ps *ProductService) FindProductById(productId int64) (*Product, error) {
 }
 
 // FindProductsByBarcode возвращает продукт по штрих-коду
-func (ps *ProductService) FindProductsByBarcode(barcodeStr string) ([]Product, error) {
+func (ref *ReferenceProducts) FindProductsByBarcode(barcodeStr string) ([]Product, error) {
 	var pId int64
 	var bcType int
 	var bcVal string
@@ -154,7 +158,7 @@ func (ps *ProductService) FindProductsByBarcode(barcodeStr string) ([]Product, e
 
 	sqlBc := "SELECT product_id, barcode, barcode_type FROM barcodes WHERE barcode = $1"
 
-	rows, err := ps.Storage.Db.Query(sqlBc, barcodeStr)
+	rows, err := ref.Db.Query(sqlBc, barcodeStr)
 	if err != nil {
 		return prods, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -164,7 +168,7 @@ func (ps *ProductService) FindProductsByBarcode(barcodeStr string) ([]Product, e
 		if err != nil {
 			return prods, &core.WrapError{Err: err, Code: core.SystemError}
 		}
-		p, err := ps.FindProductById(pId)
+		p, err := ref.FindProductById(pId)
 		if err != nil {
 			return prods, &core.WrapError{Err: err, Code: core.SystemError}
 		}
@@ -174,8 +178,13 @@ func (ps *ProductService) FindProductsByBarcode(barcodeStr string) ([]Product, e
 	return prods, nil
 }
 
+func (ref *ReferenceProducts) FindManufacturerByName(mnfName string) ([]Manufacturer, error) {
+	m := ReferenceManufacturers{Reference: ref.Reference}
+	return m.FindManufacturerByName(mnfName)
+}
+
 // GetProducts возвращает список продуктов
-func (ps *ProductService) GetProducts(offset int, limit int) ([]Product, int, error) {
+func (ref *ReferenceProducts) GetProducts(offset int, limit int) ([]Product, int, error) {
 	var count int
 
 	sqlProd := "SELECT p.id, p.name, p.item_number, p.manufacturer_id, m.name FROM products p " +
@@ -185,7 +194,7 @@ func (ps *ProductService) GetProducts(offset int, limit int) ([]Product, int, er
 	if limit == 0 {
 		limit = 10
 	}
-	rows, err := ps.Storage.Query(sqlProd+" LIMIT $1 OFFSET $2", limit, offset)
+	rows, err := ref.Db.Query(sqlProd+" LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -196,7 +205,7 @@ func (ps *ProductService) GetProducts(offset int, limit int) ([]Product, int, er
 		p := new(Product)
 		err = rows.Scan(&p.Id, &p.Name, &p.ItemNumber, &p.Manufacturer.Id, &p.Manufacturer.Name)
 
-		pBarcodes, err := ps.GetProductBarcodes(p.Id) // пока так
+		pBarcodes, err := ref.GetProductBarcodes(p.Id) // пока так
 		if err != nil {
 			return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 		}
@@ -206,7 +215,7 @@ func (ps *ProductService) GetProducts(offset int, limit int) ([]Product, int, er
 	}
 
 	sqlCount := fmt.Sprintf("SELECT COUNT(*) as count FROM ( %s ) sub", sqlProd)
-	err = ps.Storage.Db.QueryRow(sqlCount).Scan(&count)
+	err = ref.Db.QueryRow(sqlCount).Scan(&count)
 	if err != nil {
 		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -214,7 +223,7 @@ func (ps *ProductService) GetProducts(offset int, limit int) ([]Product, int, er
 }
 
 // UpdateProduct создает новый продукт
-func (ps *ProductService) UpdateProduct(p *Product) (int64, error) {
+func (ref *ReferenceProducts) UpdateProduct(p *Product) (int64, error) {
 	mId := int64(0)
 
 	// сначала посмотрим производителя
@@ -222,7 +231,7 @@ func (ps *ProductService) UpdateProduct(p *Product) (int64, error) {
 
 	// если имя без id, то поищем сами и если будет 1, то его и возьмем
 	if mId == 0 && strings.TrimSpace(p.Manufacturer.Name) != "" {
-		mnfs, err := ps.FindManufacturerByName(p.Manufacturer.Name)
+		mnfs, err := ref.FindManufacturerByName(p.Manufacturer.Name)
 		if err != nil {
 			return 0, &core.WrapError{Err: err, Code: core.SystemError}
 		}
@@ -234,7 +243,7 @@ func (ps *ProductService) UpdateProduct(p *Product) (int64, error) {
 		}
 	}
 
-	tx, err := ps.Storage.Db.Begin()
+	tx, err := ref.Db.Begin()
 	if err != nil {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -288,10 +297,10 @@ func (ps *ProductService) UpdateProduct(p *Product) (int64, error) {
 	return p.Id, nil
 }
 
-func (ps *ProductService) GetSuggestionProducts(text string, limit int) ([]string, error) {
-	return ps.getSuggestion(ps.Storage.Db, text, limit)
+func (ref *ReferenceProducts) GetSuggestionProducts(text string, limit int) ([]string, error) {
+	return ref.getSuggestion(text, limit)
 }
 
-func (ps *ProductService) DeleteProduct(p *Product) (int64, error) {
-	return ps.deleteItem(ps.Storage.Db, p.Id)
+func (ref *ReferenceProducts) DeleteProduct(p *Product) (int64, error) {
+	return ref.deleteItem(p.Id)
 }

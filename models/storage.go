@@ -99,6 +99,33 @@ func (s *Storage) GetUserService() *UserService {
 	return us
 }
 
+func (s *Storage) GetRefManufacturers() *ReferenceManufacturers {
+	return &ReferenceManufacturers{
+		Reference{
+			Name: "manufacturers",
+			Db:   s.Db,
+		},
+	}
+}
+
+func (s *Storage) GetRefUsers() *ReferenceUsers {
+	return &ReferenceUsers{
+		Reference{
+			Name: "users",
+			Db:   s.Db,
+		},
+	}
+}
+
+func (s *Storage) GetRefProducts() *ReferenceProducts {
+	return &ReferenceProducts{
+		Reference{
+			Name: "products",
+			Db:   s.Db,
+		},
+	}
+}
+
 func (s *Storage) GetWarehouses() {
 
 }

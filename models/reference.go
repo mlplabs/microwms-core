@@ -9,9 +9,10 @@ import (
 
 type Reference struct {
 	Name string
+	Db   *sql.DB
 }
 
-func (r *Reference) getItems(db *sql.DB, offset int, limit int) ([]RefItem, int, error) {
+func (r *Reference) getItems(offset int, limit int) ([]RefItem, int, error) {
 	var count int
 
 	sqlSel := fmt.Sprintf("SELECT id, name FROM %s ORDER BY name ASC", r.Name)
@@ -19,7 +20,7 @@ func (r *Reference) getItems(db *sql.DB, offset int, limit int) ([]RefItem, int,
 	if limit == 0 {
 		limit = 10
 	}
-	rows, err := db.Query(sqlSel+" LIMIT $1 OFFSET $2", limit, offset)
+	rows, err := r.Db.Query(sqlSel+" LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -33,17 +34,17 @@ func (r *Reference) getItems(db *sql.DB, offset int, limit int) ([]RefItem, int,
 	}
 
 	sqlCount := fmt.Sprintf("SELECT COUNT(*) as count FROM ( %s ) sub", sqlSel)
-	err = db.QueryRow(sqlCount).Scan(&count)
+	err = r.Db.QueryRow(sqlCount).Scan(&count)
 	if err != nil {
 		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 	return items, count, nil
 }
 
-func (r *Reference) createItem(db *sql.DB, refItem IRefItem) (int64, error) {
+func (r *Reference) createItem(refItem IRefItem) (int64, error) {
 	var insertId int64
 	sqlCreate := "INSERT INTO users (name) VALUES ($1) RETURNING id"
-	err := db.QueryRow(sqlCreate, refItem.GetName()).Scan(&insertId)
+	err := r.Db.QueryRow(sqlCreate, refItem.GetName()).Scan(&insertId)
 	refItem.SetId(insertId)
 	if err != nil {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
@@ -51,9 +52,9 @@ func (r *Reference) createItem(db *sql.DB, refItem IRefItem) (int64, error) {
 	return refItem.GetId(), nil
 }
 
-func (r *Reference) updateItem(db *sql.DB, refItem IRefItem) (int64, error) {
+func (r *Reference) updateItem(refItem IRefItem) (int64, error) {
 	sqlUpd := fmt.Sprintf("UPDATE %s SET name=$2 WHERE id=$1", r.Name)
-	res, err := db.Exec(sqlUpd, refItem.GetId(), refItem.GetName())
+	res, err := r.Db.Exec(sqlUpd, refItem.GetId(), refItem.GetName())
 	if err != nil {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -64,9 +65,9 @@ func (r *Reference) updateItem(db *sql.DB, refItem IRefItem) (int64, error) {
 	return refItem.GetId(), nil
 }
 
-func (r *Reference) deleteItem(db *sql.DB, id int64) (int64, error) {
+func (r *Reference) deleteItem(id int64) (int64, error) {
 	sqlDel := fmt.Sprintf("DELETE FROM %s WHERE id=$1", r.Name)
-	res, err := db.Exec(sqlDel, id)
+	res, err := r.Db.Exec(sqlDel, id)
 	if err != nil {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -77,9 +78,9 @@ func (r *Reference) deleteItem(db *sql.DB, id int64) (int64, error) {
 	return affRows, nil
 }
 
-func (r *Reference) findItemById(db *sql.DB, id int64) (*RefItem, error) {
+func (r *Reference) findItemById(id int64) (*RefItem, error) {
 	sqlUsr := fmt.Sprintf("SELECT id, name FROM %s WHERE id = $1", r.Name)
-	row := db.QueryRow(sqlUsr, id)
+	row := r.Db.QueryRow(sqlUsr, id)
 	u := new(RefItem)
 	err := row.Scan(&u.Id, &u.Name)
 	if err != nil {
@@ -88,10 +89,10 @@ func (r *Reference) findItemById(db *sql.DB, id int64) (*RefItem, error) {
 	return u, nil
 }
 
-func (r *Reference) findItemByName(db *sql.DB, name string) ([]RefItem, error) {
+func (r *Reference) findItemByName(name string) ([]RefItem, error) {
 	retObjList := make([]RefItem, 0)
 	sql := fmt.Sprintf("SELECT id, name FROM %s WHERE name = $1", r.Name)
-	rows, err := db.Query(sql, name)
+	rows, err := r.Db.Query(sql, name)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -107,7 +108,7 @@ func (r *Reference) findItemByName(db *sql.DB, name string) ([]RefItem, error) {
 	return retObjList, nil
 }
 
-func (r *Reference) getSuggestion(db *sql.DB, text string, limit int) ([]string, error) {
+func (r *Reference) getSuggestion(text string, limit int) ([]string, error) {
 	retVal := make([]string, 0)
 
 	if strings.TrimSpace(text) == "" {
@@ -118,7 +119,7 @@ func (r *Reference) getSuggestion(db *sql.DB, text string, limit int) ([]string,
 	}
 
 	sqlSel := fmt.Sprintf("SELECT name FROM %s WHERE name LIKE $1 LIMIT $2", r.Name)
-	rows, err := db.Query(sqlSel, text+"%", limit)
+	rows, err := r.Db.Query(sqlSel, text+"%", limit)
 	if err != nil {
 		return retVal, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -155,4 +156,7 @@ func (r *RefItem) GetName() string {
 
 func (r *RefItem) SetId(id int64) {
 	r.Id = id
+}
+func (r *RefItem) GetParentId() {
+
 }

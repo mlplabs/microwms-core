@@ -10,9 +10,13 @@ type User struct {
 	RefItem
 }
 
+type ReferenceUsers struct {
+	Reference
+}
+
 // GetUsers возвращает список пользователей
-func (ps *UserService) GetUsers(offset int, limit int) ([]User, int, error) {
-	items, count, err := ps.getItems(ps.Storage.Db, offset, limit)
+func (ref *ReferenceUsers) GetUsers(offset int, limit int) ([]User, int, error) {
+	items, count, err := ref.getItems(offset, limit)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -26,16 +30,16 @@ func (ps *UserService) GetUsers(offset int, limit int) ([]User, int, error) {
 }
 
 // FindUserById возвращает пользователя по внутреннему идентификатору
-func (ps *UserService) FindUserById(usrId int64) (*User, error) {
-	item, err := ps.findItemById(ps.Storage.Db, usrId)
+func (ref *ReferenceUsers) FindUserById(usrId int64) (*User, error) {
+	item, err := ref.findItemById(usrId)
 	u := new(User)
 	u.RefItem = *item
 	return u, err
 }
 
 // FindUserByName возвращает пользователя по наименованию
-func (ps *UserService) FindUserByName(valName string) ([]User, error) {
-	items, err := ps.findItemByName(ps.Storage.Db, valName)
+func (ref *ReferenceUsers) FindUserByName(valName string) ([]User, error) {
+	items, err := ref.findItemByName(valName)
 	if err != nil {
 		return nil, err
 	}
@@ -48,21 +52,21 @@ func (ps *UserService) FindUserByName(valName string) ([]User, error) {
 	return retVal, err
 }
 
-func (ps *UserService) GetSuggestionUser(text string, limit int) ([]string, error) {
-	return ps.getSuggestion(ps.Storage.Db, text, limit)
+func (ref *ReferenceUsers) GetSuggestionUser(text string, limit int) ([]string, error) {
+	return ref.getSuggestion(text, limit)
 }
 
 // CreateUser создает нового пользователя
-func (ps *UserService) CreateUser(u *User) (int64, error) {
-	return ps.createItem(ps.Storage.Db, u)
+func (ref *ReferenceUsers) CreateUser(u *User) (int64, error) {
+	return ref.createItem(u)
 }
 
 // UpdateUser обновляет пользователя
-func (ps *UserService) UpdateUser(u *User) (int64, error) {
-	return ps.updateItem(ps.Storage.Db, u)
+func (ref *ReferenceUsers) UpdateUser(u *User) (int64, error) {
+	return ref.updateItem(u)
 }
 
 // DeleteUser удаляет пользователя
-func (ps *UserService) DeleteUser(u *User) (int64, error) {
-	return ps.deleteItem(ps.Storage.Db, u.Id)
+func (ref *ReferenceUsers) DeleteUser(u *User) (int64, error) {
+	return ref.deleteItem(u.Id)
 }
