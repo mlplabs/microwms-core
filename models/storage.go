@@ -44,6 +44,10 @@ type Storage struct {
 	Db *sql.DB
 }
 
+var (
+	DefaultRowsLimit int
+)
+
 func (s *Storage) Init(host, dbname, dbuser, dbpass string) error {
 	var err error
 	connStr := fmt.Sprintf("host=%s dbname=%s user=%s password=%s sslmode=disable", host, dbname, dbuser, dbpass)
@@ -63,6 +67,7 @@ func (s *Storage) Init(host, dbname, dbuser, dbpass string) error {
 func (s *Storage) GetProductService() *ProductService {
 	ps := new(ProductService)
 	ps.Storage = s
+	ps.Name = "products"
 	return ps
 }
 

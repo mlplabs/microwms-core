@@ -11,6 +11,35 @@ type Reference struct {
 	Name string
 }
 
+func (r *Reference) getItems(db *sql.DB, offset int, limit int) ([]RefItem, int, error) {
+	var count int
+
+	sqlSel := fmt.Sprintf("SELECT id, name FROM %s ORDER BY name ASC", r.Name)
+
+	if limit == 0 {
+		limit = 10
+	}
+	rows, err := db.Query(sqlSel+" LIMIT $1 OFFSET $2", limit, offset)
+	if err != nil {
+		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	defer rows.Close()
+
+	items := make([]RefItem, count, 10)
+	for rows.Next() {
+		item := new(RefItem)
+		err = rows.Scan(&item.Id, &item.Name)
+		items = append(items, *item)
+	}
+
+	sqlCount := fmt.Sprintf("SELECT COUNT(*) as count FROM ( %s ) sub", sqlSel)
+	err = db.QueryRow(sqlCount).Scan(&count)
+	if err != nil {
+		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	return items, count, nil
+}
+
 func (r *Reference) createItem(db *sql.DB, refItem IRefItem) (int64, error) {
 	var insertId int64
 	sqlCreate := "INSERT INTO users (name) VALUES ($1) RETURNING id"

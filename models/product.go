@@ -18,6 +18,7 @@ type Product struct {
 
 type ProductService struct {
 	Storage *Storage
+	Reference
 }
 
 // CreateProduct создает новый продукт
@@ -120,33 +121,6 @@ func (ps *ProductService) GetProductBarcodes(productId int64) ([]Barcode, error)
 	}
 
 	return bcArr, nil
-}
-
-func (ps *ProductService) GetSuggestionProducts(text string, limit int) ([]string, error) {
-	retVal := make([]string, 0)
-
-	if strings.TrimSpace(text) == "" {
-		return retVal, &core.WrapError{Err: fmt.Errorf("invalid search text "), Code: core.SystemError}
-	}
-	if limit == 0 {
-		limit = 10
-	}
-
-	sql := "SELECT name FROM products WHERE name LIKE $1 LIMIT $2"
-	rows, err := ps.Storage.Query(sql, text+"%", limit)
-	if err != nil {
-		return retVal, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-	defer rows.Close()
-	for rows.Next() {
-		s := ""
-		err := rows.Scan(&s)
-		if err != nil {
-			return retVal, &core.WrapError{Err: err, Code: core.SystemError}
-		}
-		retVal = append(retVal, s)
-	}
-	return retVal, err
 }
 
 // FindProductById возвращает продукт по внутреннему идентификатору
@@ -314,15 +288,10 @@ func (ps *ProductService) UpdateProduct(p *Product) (int64, error) {
 	return p.Id, nil
 }
 
+func (ps *ProductService) GetSuggestionProducts(text string, limit int) ([]string, error) {
+	return ps.getSuggestion(ps.Storage.Db, text, limit)
+}
+
 func (ps *ProductService) DeleteProduct(p *Product) (int64, error) {
-	sqlDel := "DELETE FROM products WHERE id=$1"
-	res, err := ps.Storage.Db.Exec(sqlDel, p.Id)
-	if err != nil {
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-	affRows, err := res.RowsAffected()
-	if err != nil {
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-	return affRows, nil
+	return ps.deleteItem(ps.Storage.Db, p.Id)
 }
