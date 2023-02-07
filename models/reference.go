@@ -44,7 +44,7 @@ func (r *Reference) getItems(offset int, limit int) ([]RefItem, int, error) {
 
 func (r *Reference) createItem(refItem IRefItem) (int64, error) {
 	var insertId int64
-	sqlCreate := "INSERT INTO users (name) VALUES ($1) RETURNING id"
+	sqlCreate := fmt.Sprintf("INSERT INTO %s (name) VALUES ($1) RETURNING id", r.Name)
 	err := r.Db.QueryRow(sqlCreate, refItem.GetName()).Scan(&insertId)
 	refItem.SetId(insertId)
 	if err != nil {
