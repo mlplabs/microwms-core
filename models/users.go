@@ -21,10 +21,10 @@ func (ref *ReferenceUsers) GetUsers(offset int, limit int) ([]User, int, error) 
 		return nil, 0, err
 	}
 	retVal := make([]User, len(items))
-	for _, item := range items {
+	for idx, item := range items {
 		u := new(User)
 		u.RefItem = item
-		retVal = append(retVal, *u)
+		retVal[idx] = *u
 	}
 	return retVal, count, nil
 }
