@@ -127,14 +127,5 @@ func (ps *UserService) GetSuggestionUser(text string, limit int) ([]string, erro
 }
 
 func (ps *UserService) DeleteUser(u *User) (int64, error) {
-	sqlDel := "DELETE FROM manufacturers WHERE id=$1"
-	res, err := ps.Storage.Db.Exec(sqlDel, u.Id)
-	if err != nil {
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-	affRows, err := res.RowsAffected()
-	if err != nil {
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-	return affRows, nil
+	return u.deleteItem(ps.Storage.Db)
 }
