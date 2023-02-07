@@ -8,8 +8,9 @@ import (
 )
 
 type Reference struct {
-	Name string
-	Db   *sql.DB
+	Name   string
+	Parent string
+	Db     *sql.DB
 }
 
 func (r *Reference) getItems(offset int, limit int) ([]RefItem, int, error) {
@@ -137,26 +138,26 @@ func (r *Reference) getSuggestion(text string, limit int) ([]string, error) {
 
 type IRefItem interface {
 	GetId() int64
+	GetParentId() int64
 	SetId(int64)
 	GetName() string
 }
 
 type RefItem struct {
-	Id   int64  `json:"id"`
-	Name string `json:"name"`
+	Id       int64  `json:"id"`
+	ParentId int64  `json:"parent_id"`
+	Name     string `json:"name"`
 }
 
 func (r *RefItem) GetId() int64 {
 	return r.Id
 }
-
 func (r *RefItem) GetName() string {
 	return r.Name
 }
-
 func (r *RefItem) SetId(id int64) {
 	r.Id = id
 }
-func (r *RefItem) GetParentId() {
-
+func (r *RefItem) GetParentId() int64 {
+	return r.ParentId
 }

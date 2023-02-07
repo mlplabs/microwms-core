@@ -126,8 +126,14 @@ func (s *Storage) GetRefProducts() *ReferenceProducts {
 	}
 }
 
-func (s *Storage) GetWarehouses() {
-
+func (s *Storage) GetRefBarcodes() *ReferenceBarcodes {
+	return &ReferenceBarcodes{
+		Reference{
+			Name:   "barcodes",
+			Parent: "products",
+			Db:     s.Db,
+		},
+	}
 }
 
 func (s *Storage) Query(query string, args ...interface{}) (*sql.Rows, error) {

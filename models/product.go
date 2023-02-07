@@ -78,9 +78,9 @@ func (ref *ReferenceProducts) CreateProduct(p *Product) (int64, error) {
 
 	if p.Barcodes != nil {
 		for _, bc := range p.Barcodes {
-			sqlBc := "INSERT INTO barcodes (product_id, barcode, barcode_type) " +
+			sqlBc := "INSERT INTO barcodes (parent_id, barcode, barcode_type) " +
 				"VALUES($1, $2, $3) " +
-				"ON CONFLICT (product_id, barcode, barcode_type) DO UPDATE SET product_id=$1, barcode=$2, barcode_type=$3"
+				"ON CONFLICT (parent_id, barcode, barcode_type) DO UPDATE SET parent_id=$1, barcode=$2, barcode_type=$3"
 			_, err := tx.Exec(sqlBc, pId, bc.Name, bc.Type)
 			if err != nil {
 				tx.Rollback()
@@ -98,12 +98,13 @@ func (ref *ReferenceProducts) CreateProduct(p *Product) (int64, error) {
 
 // GetProductBarcodes возвращает список штрих-кодов продукта
 func (ref *ReferenceProducts) GetProductBarcodes(productId int64) ([]Barcode, error) {
+
 	var id int64
 	var bcVal string
 	var bcType int
 	bcArr := make([]Barcode, 0, 0)
 
-	sqlBc := "SELECT id, barcode, barcode_type FROM barcodes WHERE product_id = $1"
+	sqlBc := "SELECT id, barcode, barcode_type FROM barcodes WHERE parent_id = $1"
 	rows, err := ref.Db.Query(sqlBc, productId)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
@@ -156,7 +157,7 @@ func (ref *ReferenceProducts) FindProductsByBarcode(barcodeStr string) ([]Produc
 	var bcVal string
 	prods := make([]Product, 0, 0)
 
-	sqlBc := "SELECT product_id, barcode, barcode_type FROM barcodes WHERE barcode = $1"
+	sqlBc := "SELECT parent_id, barcode, barcode_type FROM barcodes WHERE barcode = $1"
 
 	rows, err := ref.Db.Query(sqlBc, barcodeStr)
 	if err != nil {
@@ -270,7 +271,7 @@ func (ref *ReferenceProducts) UpdateProduct(p *Product) (int64, error) {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
-	sqlDelBc := "DELETE FROM barcodes WHERE product_id=$1"
+	sqlDelBc := "DELETE FROM barcodes WHERE parent_id=$1"
 	res, err = tx.Exec(sqlDelBc, p.Id)
 	if err != nil {
 		tx.Rollback()
@@ -279,9 +280,9 @@ func (ref *ReferenceProducts) UpdateProduct(p *Product) (int64, error) {
 
 	if p.Barcodes != nil {
 		for _, bc := range p.Barcodes {
-			sqlBc := "INSERT INTO barcodes (product_id, barcode, barcode_type) " +
+			sqlBc := "INSERT INTO barcodes (parent_id, barcode, barcode_type) " +
 				"VALUES($1, $2, $3) " +
-				"ON CONFLICT (product_id, barcode, barcode_type) DO UPDATE SET product_id=$1, barcode=$2, barcode_type=$3"
+				"ON CONFLICT (parent_id, barcode, barcode_type) DO UPDATE SET parent_id=$1, barcode=$2, barcode_type=$3"
 			_, err := tx.Exec(sqlBc, p.Id, bc.Name, bc.Type)
 			if err != nil {
 				tx.Rollback()

@@ -14,10 +14,14 @@ type Barcode struct {
 	ProdId int64  `json:"prod_id"`
 }
 
+type ReferenceBarcodes struct {
+	Reference
+}
+
 // CreateBarcode создает новый штрих-код
-func (ps *ProductService) CreateBarcode(b *Barcode) (int64, error) {
-	sqlInsProd := "INSERT INTO barcodes (barcode, barcode_type, product_id) VALUES ($1, $2, $3) RETURNING id"
-	err := ps.Storage.Db.QueryRow(sqlInsProd, b.Name, b.Type, b.ProdId).Scan(&b.Id)
+func (ref *ReferenceBarcodes) CreateBarcode(b *Barcode) (int64, error) {
+	sqlInsProd := fmt.Sprintf("INSERT INTO %s (barcode, barcode_type, parent_id) VALUES ($1, $2, $3) RETURNING id", ref.Name)
+	err := ref.Db.QueryRow(sqlInsProd, b.Name, b.Type, b.ProdId).Scan(&b.Id)
 	if err != nil {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -25,16 +29,15 @@ func (ps *ProductService) CreateBarcode(b *Barcode) (int64, error) {
 }
 
 // GetBarcodes возвращает список штрих-кодов
-func (ps *ProductService) GetBarcodes(offset int, limit int) ([]Barcode, int, error) {
+func (ref *ReferenceBarcodes) GetBarcodes(offset int, limit int) ([]Barcode, int, error) {
 	var count int
 
-	sqlBc := "SELECT b.id, b.name, b.barcode_type, b.product_id FROM barcodes b " +
-		"		ORDER BY m.name ASC"
+	sqlBc := fmt.Sprintf("SELECT b.id, b.name, b.barcode_type, b.parent_id FROM %s b ORDER BY m.name ASC", ref.Name)
 
 	if limit == 0 {
 		limit = 10
 	}
-	rows, err := ps.Storage.Query(sqlBc+" LIMIT $1 OFFSET $2", limit, offset)
+	rows, err := ref.Db.Query(sqlBc+" LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -48,7 +51,7 @@ func (ps *ProductService) GetBarcodes(offset int, limit int) ([]Barcode, int, er
 	}
 
 	sqlCount := fmt.Sprintf("SELECT COUNT(*) as count FROM ( %s ) sub", sqlBc)
-	err = ps.Storage.Db.QueryRow(sqlCount).Scan(&count)
+	err = ref.Db.QueryRow(sqlCount).Scan(&count)
 	if err != nil {
 		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -56,11 +59,9 @@ func (ps *ProductService) GetBarcodes(offset int, limit int) ([]Barcode, int, er
 }
 
 // FindBarcodeById возвращает штрих-код по внутреннему идентификатору
-func (ps *ProductService) FindBarcodeById(bcId int64) (*Barcode, error) {
-	sqlCell := "SELECT b.id, b.name, b.type, b.product_id " +
-		"FROM barcodes b " +
-		"WHERE b.id = $1"
-	row := ps.Storage.Db.QueryRow(sqlCell, bcId)
+func (ref *ReferenceBarcodes) FindBarcodeById(bcId int64) (*Barcode, error) {
+	sqlCell := fmt.Sprintf("SELECT b.id, b.name, b.type, b.parent_id FROM %s b WHERE b.id = $1", ref.Name)
+	row := ref.Db.QueryRow(sqlCell, bcId)
 	b := new(Barcode)
 	err := row.Scan(&b.Id, &b.Name, &b.Type, &b.ProdId)
 	if err != nil {
@@ -71,10 +72,11 @@ func (ps *ProductService) FindBarcodeById(bcId int64) (*Barcode, error) {
 
 // FindBarcodesByName возвращает список штрих-кодов по наименованию
 // только по значению без типа и привязки
-func (ps *ProductService) FindBarcodesByName(bcName string) ([]Barcode, error) {
+func (ref *ReferenceBarcodes) FindBarcodesByName(bcName string) ([]Barcode, error) {
 	retBc := make([]Barcode, 0)
-	sql := "SELECT id, name, type, product_id FROM barcodes WHERE name = $1"
-	rows, err := ps.Storage.Query(sql, bcName)
+
+	sqlSel := fmt.Sprintf("SELECT id, name, type, parent_id FROM %s WHERE name = $1", ref.Name)
+	rows, err := ref.Db.Query(sqlSel, bcName)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -91,10 +93,10 @@ func (ps *ProductService) FindBarcodesByName(bcName string) ([]Barcode, error) {
 }
 
 // FindBarcodesByProdId возвращает список штрих-кодов по товару (владельцу)
-func (ps *ProductService) FindBarcodesByProdId(prodId int64) ([]Barcode, error) {
+func (ref *ReferenceBarcodes) FindBarcodesByProdId(prodId int64) ([]Barcode, error) {
 	retBc := make([]Barcode, 0)
-	sql := "SELECT id, name, type, product_id FROM products WHERE name = $1"
-	rows, err := ps.Storage.Query(sql, prodId)
+	sql := fmt.Sprintf("SELECT id, name, type, parent_id FROM %s WHERE name = $1", ref.Parent)
+	rows, err := ref.Db.Query(sql, prodId)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -111,9 +113,9 @@ func (ps *ProductService) FindBarcodesByProdId(prodId int64) ([]Barcode, error) 
 }
 
 // UpdateBarcode обновляет значение/тип/?привязку? штрих-кода
-func (ps *ProductService) UpdateBarcode(b *Barcode) (int64, error) {
-	sqlUpd := "UPDATE barcodes SET barcode=$2, barcode_type=$3, product_id=$4 WHERE id=$1"
-	res, err := ps.Storage.Db.Exec(sqlUpd, b.Id, b.Name, b.Type, b.ProdId)
+func (ref *ReferenceBarcodes) UpdateBarcode(b *Barcode) (int64, error) {
+	sqlUpd := fmt.Sprintf("UPDATE %s SET barcode=$2, barcode_type=$3, parent_id=$4 WHERE id=$1", ref.Name)
+	res, err := ref.Db.Exec(sqlUpd, b.Id, b.Name, b.Type, b.ProdId)
 	if err != nil {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -123,7 +125,7 @@ func (ps *ProductService) UpdateBarcode(b *Barcode) (int64, error) {
 	return b.Id, nil
 }
 
-func (ps *ProductService) GetSuggestionBarcodes(text string, limit int) ([]string, error) {
+func (ref *ReferenceBarcodes) GetSuggestionBarcodes(text string, limit int) ([]string, error) {
 	retVal := make([]string, 0)
 
 	if strings.TrimSpace(text) == "" {
@@ -133,8 +135,8 @@ func (ps *ProductService) GetSuggestionBarcodes(text string, limit int) ([]strin
 		limit = 10
 	}
 
-	sql := "SELECT name FROM barcodes WHERE name LIKE $1 LIMIT $2"
-	rows, err := ps.Storage.Query(sql, text+"%", limit)
+	sqlSel := fmt.Sprintf("SELECT name FROM %s WHERE name LIKE $1 LIMIT $2", ref.Name)
+	rows, err := ref.Db.Query(sqlSel, text+"%", limit)
 	if err != nil {
 		return retVal, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -150,9 +152,9 @@ func (ps *ProductService) GetSuggestionBarcodes(text string, limit int) ([]strin
 	return retVal, err
 }
 
-func (ps *ProductService) DeleteBarcode(m *Barcode) (int64, error) {
+func (ref *ReferenceBarcodes) DeleteBarcode(m *Barcode) (int64, error) {
 	sqlDel := "DELETE FROM barcodes WHERE id=$1"
-	res, err := ps.Storage.Db.Exec(sqlDel, m.Id)
+	res, err := ref.Db.Exec(sqlDel, m.Id)
 	if err != nil {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}

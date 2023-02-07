@@ -334,7 +334,7 @@ ALTER TABLE ONLY public.zones ALTER COLUMN id SET DEFAULT nextval('public.zones_
 -- Data for Name: barcodes; Type: TABLE DATA; Schema: public; Owner: devuser
 --
 
-COPY public.barcodes (product_id, barcode, barcode_type, id) FROM stdin;
+COPY public.barcodes (parent_id, barcode, barcode_type, id) FROM stdin;
 18	110 123456sw78901	3	1
 18	110 0045f36782901	2	2
 11	123456sw78901	3	3
@@ -547,7 +547,7 @@ ALTER TABLE ONLY public.zones
 -- Name: barcodes_product_id_barcode_barcode_type_uindex; Type: INDEX; Schema: public; Owner: devuser
 --
 
-CREATE UNIQUE INDEX barcodes_product_id_barcode_barcode_type_uindex ON public.barcodes USING btree (product_id, barcode, barcode_type);
+CREATE UNIQUE INDEX barcodes_product_id_barcode_barcode_type_uindex ON public.barcodes USING btree (parent_id, barcode, barcode_type);
 
 
 --
