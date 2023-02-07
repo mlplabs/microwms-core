@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/lib/pq"
-	_ "github.com/lib/pq"
 )
 
 // SpecificSize структура весогабаритных характеристик (см/см3/кг)
@@ -86,6 +85,12 @@ func (s *Storage) GetCellService() *CellService {
 	cs := new(CellService)
 	cs.Storage = s
 	return cs
+}
+
+func (s *Storage) GetUserService() *UserService {
+	us := new(UserService)
+	us.Storage = s
+	return us
 }
 
 func (s *Storage) GetWarehouses() {
@@ -206,7 +211,7 @@ func (s *Storage) Quantity(whsId int, cell Cell, tx *sql.Tx) (map[int]int, error
 }
 
 func (s *Storage) Move(cellSrc, cellDst *Cell, prod *Product, quantity int) error {
-	// TODO: cellSrc.WhsId <> cellDst.WhsId - веременной разрыв или виртуальное перемещение
+	// TODO: cellSrc.WhsId <> cellDst.WhsId - временной разрыв или виртуальное перемещение
 
 	_, err := s.Get(cellSrc, prod, quantity, nil)
 	if err != nil {

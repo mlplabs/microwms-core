@@ -2,6 +2,11 @@ package models
 
 import "fmt"
 
+const (
+	CellNumericFormat   = "%01d%02d%02d%02d%02d"
+	CellHumanViewFormat = "%01d-%02d-%02d-%02d-%02d"
+)
+
 // Cell ячейка склада
 type Cell struct {
 	Id            int64        `json:"id"`
@@ -39,10 +44,10 @@ func (sz *SpecificSize) GetSize() (int, int, int, float32, float32) {
 
 // GetNumeric возвращает строковое представление ячейки в виде набора чисел
 func (c *Cell) GetNumeric() string {
-	return fmt.Sprintf("%01d%02d%02d%02d%02d", c.WhsId, c.ZoneId, c.PassageId, c.RackId, c.Floor)
+	return fmt.Sprintf(CellNumericFormat, c.WhsId, c.ZoneId, c.PassageId, c.RackId, c.Floor)
 }
 
 // GetNumericView возвращает человеко-понятное представление (с разделителями)
 func (c *Cell) GetNumericView() string {
-	return fmt.Sprintf("%01d-%02d-%02d-%02d-%02d", c.WhsId, c.ZoneId, c.PassageId, c.RackId, c.Floor)
+	return fmt.Sprintf(CellHumanViewFormat, c.WhsId, c.ZoneId, c.PassageId, c.RackId, c.Floor)
 }
