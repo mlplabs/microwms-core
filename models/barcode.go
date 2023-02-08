@@ -97,7 +97,6 @@ func (ref *ReferenceBarcodes) FindBarcodesByName(bcName string) ([]Barcode, erro
 func (ref *ReferenceBarcodes) FindBarcodesByProdId(prodId int64) ([]Barcode, error) {
 	fields := []string{"id", "name", "barcode_type", "parent_id"}
 	fieldsStr := strings.Join(fields, ", ")
-
 	pointers := make([]interface{}, len(fields))
 
 	retBc := make([]Barcode, 0)
