@@ -18,8 +18,8 @@ type ReferenceWarehouses struct {
 }
 
 // GetItems возвращает список складов
-func (ref *ReferenceWarehouses) GetItems(offset int, limit int) ([]Whs, int, error) {
-	items, count, err := ref.getItems(offset, limit, 0)
+func (ref *ReferenceWarehouses) GetItems(offset int, limit int, parentId int64) ([]Whs, int, error) {
+	items, count, err := ref.getItems(offset, limit, parentId)
 	if err != nil {
 		return nil, 0, err
 	}

@@ -176,3 +176,7 @@ func (r *RefItem) SetId(id int64) {
 func (r *RefItem) GetParentId() int64 {
 	return r.ParentId
 }
+
+type IRefSuggesting interface {
+	GetSuggestion(string, int) ([]string, error)
+}

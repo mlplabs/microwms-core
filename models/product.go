@@ -21,7 +21,7 @@ type ReferenceProducts struct {
 }
 
 // GetItems возвращает список продуктов
-func (ref *ReferenceProducts) GetItems(offset int, limit int) ([]Product, int, error) {
+func (ref *ReferenceProducts) GetItems(offset int, limit int, parentId int64) ([]Product, int, error) {
 	var count int
 
 	sqlProd := "SELECT p.id, p.name, p.item_number, p.manufacturer_id, m.name FROM products p " +

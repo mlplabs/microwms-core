@@ -25,8 +25,8 @@ type ReferenceZones struct {
 }
 
 // GetItems возвращает список зон
-func (ref *ReferenceZones) GetItems(offset int, limit int) ([]Zone, int, error) {
-	items, count, err := ref.getItems(offset, limit, 0)
+func (ref *ReferenceZones) GetItems(offset int, limit int, parentId int64) ([]Zone, int, error) {
+	items, count, err := ref.getItems(offset, limit, parentId)
 	if err != nil {
 		return nil, 0, err
 	}

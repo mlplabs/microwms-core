@@ -10,8 +10,8 @@ type ReferenceUsers struct {
 }
 
 // GetItems возвращает список пользователей
-func (ref *ReferenceUsers) GetItems(offset int, limit int) ([]User, int, error) {
-	items, count, err := ref.getItems(offset, limit, 0)
+func (ref *ReferenceUsers) GetItems(offset int, limit int, parentId int64) ([]User, int, error) {
+	items, count, err := ref.getItems(offset, limit, parentId)
 	if err != nil {
 		return nil, 0, err
 	}

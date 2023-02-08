@@ -7,11 +7,12 @@ type Manufacturer struct {
 
 type ReferenceManufacturers struct {
 	Reference
+	IRefSuggesting
 }
 
 // GetItems возвращает список производителей
-func (ref *ReferenceManufacturers) GetItems(offset int, limit int) ([]Manufacturer, int, error) {
-	items, count, err := ref.getItems(offset, limit, 0)
+func (ref *ReferenceManufacturers) GetItems(offset int, limit int, parentId int64) ([]Manufacturer, int, error) {
+	items, count, err := ref.getItems(offset, limit, parentId)
 	if err != nil {
 		return nil, 0, err
 	}

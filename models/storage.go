@@ -72,9 +72,19 @@ func (s *Storage) GetRefWarehouses() *ReferenceWarehouses {
 	}
 }
 
+func (s *Storage) GetRefZones() *ReferenceZones {
+	return &ReferenceZones{
+		Reference{
+			Name:       "zones",
+			ParentName: "whs",
+			Db:         s.Db,
+		},
+	}
+}
+
 func (s *Storage) GetRefManufacturers() *ReferenceManufacturers {
 	return &ReferenceManufacturers{
-		Reference{
+		Reference: Reference{
 			Name: "manufacturers",
 			Db:   s.Db,
 		},
@@ -83,7 +93,7 @@ func (s *Storage) GetRefManufacturers() *ReferenceManufacturers {
 
 func (s *Storage) GetRefUsers() *ReferenceUsers {
 	return &ReferenceUsers{
-		Reference{
+		Reference: Reference{
 			Name: "users",
 			Db:   s.Db,
 		},
@@ -92,7 +102,7 @@ func (s *Storage) GetRefUsers() *ReferenceUsers {
 
 func (s *Storage) GetRefProducts() *ReferenceProducts {
 	return &ReferenceProducts{
-		Reference{
+		Reference: Reference{
 			Name: "products",
 			Db:   s.Db,
 		},
@@ -101,7 +111,7 @@ func (s *Storage) GetRefProducts() *ReferenceProducts {
 
 func (s *Storage) GetRefBarcodes() *ReferenceBarcodes {
 	return &ReferenceBarcodes{
-		Reference{
+		Reference: Reference{
 			Name:       "barcodes",
 			ParentName: "products",
 			Db:         s.Db,
