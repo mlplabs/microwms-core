@@ -15,31 +15,43 @@ const (
 type Zone struct {
 	Id       int    `json:"id"`
 	Name     string `json:"name"`
-	WhsId    int    `json:"whs_id"`
+	ParentId int    `json:"parent_id"`
 	ZoneType int    `json:"zone_type"`
+	RefItem
 }
 
-type ZoneService struct {
-	Storage *Storage
+type ReferenceZones struct {
+	Reference
 }
 
-// FindZoneById выполняет поиск зоны по внутреннему идентификатору
-func (zs *ZoneService) FindZoneById(zoneId int64) (*Zone, error) {
-	sqlCell := "SELECT id, name, whs_id, zone_type FROM zones WHERE id = $1"
-	row := zs.Storage.Db.QueryRow(sqlCell, zoneId)
-	z := new(Zone)
-	err := row.Scan(&z.Id, &z.Name, &z.WhsId, &z.ZoneType)
+// GetItems возвращает список зон
+func (ref *ReferenceZones) GetItems(offset int, limit int) ([]Zone, int, error) {
+	items, count, err := ref.getItems(offset, limit, 0)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return z, nil
+	retVal := make([]Zone, len(items))
+	for idx, item := range items {
+		u := new(Zone)
+		u.RefItem = item
+		retVal[idx] = *u
+	}
+	return retVal, count, nil
 }
 
-// GetZonesByWhsId возвращает список зон для выбранного склада
-func (zs *ZoneService) GetZonesByWhsId(whsId int64) ([]Zone, error) {
-	sqlZones := "SELECT id, name FROM zones WHERE whs_id = $1"
+// FindById выполняет поиск зоны по внутреннему идентификатору
+func (ref *ReferenceZones) FindById(zoneId int64) (*Zone, error) {
+	item, err := ref.findItemById(zoneId)
+	u := new(Zone)
+	u.RefItem = *item
+	return u, err
+}
 
-	rows, err := zs.Storage.Db.Query(sqlZones, whsId)
+// FindByParentId возвращает список зон для выбранного склада
+func (ref *ReferenceZones) FindByParentId(whsId int64) ([]Zone, error) {
+	sqlZones := "SELECT id, name FROM zones WHERE parent_id = $1"
+
+	rows, err := ref.Db.Query(sqlZones, whsId)
 	if err != nil {
 		return nil, err
 	}

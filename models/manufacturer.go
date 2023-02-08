@@ -9,9 +9,9 @@ type ReferenceManufacturers struct {
 	Reference
 }
 
-// GetManufacturers возвращает список производителей
-func (ref *ReferenceManufacturers) GetManufacturers(offset int, limit int) ([]Manufacturer, int, error) {
-	items, count, err := ref.getItems(offset, limit)
+// GetItems возвращает список производителей
+func (ref *ReferenceManufacturers) GetItems(offset int, limit int) ([]Manufacturer, int, error) {
+	items, count, err := ref.getItems(offset, limit, 0)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -26,16 +26,16 @@ func (ref *ReferenceManufacturers) GetManufacturers(offset int, limit int) ([]Ma
 	return retVal, count, nil
 }
 
-// FindManufacturerById возвращает производителя по внутреннему идентификатору
-func (ref *ReferenceManufacturers) FindManufacturerById(mnfId int64) (*Manufacturer, error) {
+// FindById возвращает производителя по внутреннему идентификатору
+func (ref *ReferenceManufacturers) FindById(mnfId int64) (*Manufacturer, error) {
 	item, err := ref.findItemById(mnfId)
 	u := new(Manufacturer)
 	u.RefItem = *item
 	return u, err
 }
 
-// FindManufacturerByName возвращает список производителей по наименованию
-func (ref *ReferenceManufacturers) FindManufacturerByName(valName string) ([]Manufacturer, error) {
+// FindByName возвращает список производителей по наименованию
+func (ref *ReferenceManufacturers) FindByName(valName string) ([]Manufacturer, error) {
 	items, err := ref.findItemByName(valName)
 	if err != nil {
 		return nil, err
@@ -49,22 +49,22 @@ func (ref *ReferenceManufacturers) FindManufacturerByName(valName string) ([]Man
 	return retVal, err
 }
 
-func (ref *ReferenceManufacturers) GetSuggestionManufacturers(text string, limit int) ([]string, error) {
+func (ref *ReferenceManufacturers) GetSuggestion(text string, limit int) ([]string, error) {
 	return ref.getSuggestion(text, limit)
 }
 
-// CreateManufacturer создает нового производителя
-func (ref *ReferenceManufacturers) CreateManufacturer(m *Manufacturer) (int64, error) {
+// Create создает нового производителя
+func (ref *ReferenceManufacturers) Create(m *Manufacturer) (int64, error) {
 	return ref.createItem(m)
 }
 
-// UpdateManufacturer обновляет производителя
-func (ref *ReferenceManufacturers) UpdateManufacturer(m *Manufacturer) (int64, error) {
+// Update обновляет производителя
+func (ref *ReferenceManufacturers) Update(m *Manufacturer) (int64, error) {
 	return ref.updateItem(m)
 }
 
-// DeleteManufacturer удаляет производителя
-func (ref *ReferenceManufacturers) DeleteManufacturer(m *Manufacturer) (int64, error) {
+// Delete удаляет производителя
+func (ref *ReferenceManufacturers) Delete(m *Manufacturer) (int64, error) {
 	return ref.deleteItem(m.Id)
 
 }

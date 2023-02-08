@@ -63,40 +63,13 @@ func (s *Storage) Init(host, dbname, dbuser, dbpass string) error {
 	return nil
 }
 
-// GetProductService возвращает менеджер для работы с продуктами
-func (s *Storage) GetProductService() *ProductService {
-	ps := new(ProductService)
-	ps.Storage = s
-	ps.Name = "products"
-	return ps
-}
-
-// GetWhsService возвращает менеджер для работы со складами
-func (s *Storage) GetWhsService() *WhsService {
-	ws := new(WhsService)
-	ws.Storage = s
-	return ws
-}
-
-// GetZoneService возвращает менеджер для работы с зонами склада
-func (s *Storage) GetZoneService() *ZoneService {
-	zs := new(ZoneService)
-	zs.Storage = s
-	return zs
-}
-
-// GetCellService возвращает менеджер для работы с ячейкам
-func (s *Storage) GetCellService() *CellService {
-	cs := new(CellService)
-	cs.Storage = s
-	return cs
-}
-
-func (s *Storage) GetUserService() *UserService {
-	us := new(UserService)
-	us.Storage = s
-	us.Name = "users"
-	return us
+func (s *Storage) GetRefWarehouses() *ReferenceWarehouses {
+	return &ReferenceWarehouses{
+		Reference{
+			Name: "whs",
+			Db:   s.Db,
+		},
+	}
 }
 
 func (s *Storage) GetRefManufacturers() *ReferenceManufacturers {
@@ -129,9 +102,9 @@ func (s *Storage) GetRefProducts() *ReferenceProducts {
 func (s *Storage) GetRefBarcodes() *ReferenceBarcodes {
 	return &ReferenceBarcodes{
 		Reference{
-			Name:   "barcodes",
-			Parent: "products",
-			Db:     s.Db,
+			Name:       "barcodes",
+			ParentName: "products",
+			Db:         s.Db,
 		},
 	}
 }

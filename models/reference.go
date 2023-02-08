@@ -8,19 +8,14 @@ import (
 )
 
 type Reference struct {
-	Name   string
-	Parent string
-	Db     *sql.DB
-	Fields []string
+	Name       string
+	ParentName string
+	Db         *sql.DB
 }
 
-func (r *Reference) getFields() []string {
-	return r.Fields
-}
-
-func (r *Reference) getItems(offset int, limit int) ([]RefItem, int, error) {
+func (r *Reference) getItems(offset int, limit int, parentId int64) ([]RefItem, int, error) {
 	var count int
-
+	sqlCond := ""
 	//fieldsStr := strings.Join(r.Fields, ", ")
 	//row := make([][]byte, len(r.Fields))
 	//rowPtr := make([]any, len(r.Fields))
@@ -28,12 +23,16 @@ func (r *Reference) getItems(offset int, limit int) ([]RefItem, int, error) {
 	//	rowPtr[i] = &row[i]
 	//}
 
-	sqlSel := fmt.Sprintf("SELECT id, name FROM %s ORDER BY name ASC", r.Name)
+	if r.ParentName != "" && parentId != 0 {
+		sqlCond = "WHERE parent_id = $3"
+	}
+
+	sqlSel := fmt.Sprintf("SELECT id, name FROM %s %s ORDER BY name ASC", r.Name, sqlCond)
 
 	if limit == 0 {
 		limit = 10
 	}
-	rows, err := r.Db.Query(sqlSel+" LIMIT $1 OFFSET $2", limit, offset)
+	rows, err := r.Db.Query(sqlSel+" LIMIT $1 OFFSET $2", limit, offset, parentId)
 	if err != nil {
 		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 	}

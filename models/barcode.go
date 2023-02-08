@@ -101,7 +101,7 @@ func (ref *ReferenceBarcodes) FindBarcodesByName(bcName string) ([]Barcode, erro
 // FindBarcodesByProdId возвращает список штрих-кодов по товару (владельцу)
 func (ref *ReferenceBarcodes) FindBarcodesByProdId(prodId int64) ([]Barcode, error) {
 	retBc := make([]Barcode, 0)
-	sql := fmt.Sprintf("SELECT id, name, barcode_type, parent_id FROM %s WHERE name = $1", ref.Parent)
+	sql := fmt.Sprintf("SELECT id, name, barcode_type, parent_id FROM %s WHERE name = $1", ref.ParentName)
 	rows, err := ref.Db.Query(sql, prodId)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}

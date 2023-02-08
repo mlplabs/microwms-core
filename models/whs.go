@@ -10,52 +10,46 @@ type Whs struct {
 	AcceptanceZone Zone   `json:"-"`
 	ShippingZone   Zone   `json:"-"`
 	StorageZones   []Zone `json:"-"`
+	RefItem
 }
 
-type WhsService struct {
-	Storage *Storage
+type ReferenceWarehouses struct {
+	Reference
 }
 
-// FindWhsById возвращает склад по идентификатору
-func (ws *WhsService) FindWhsById(whsId int64) (*Whs, error) {
-	sqlCell := "SELECT id, name FROM whs WHERE id = $1"
-	row := ws.Storage.Db.QueryRow(sqlCell, whsId)
-	w := new(Whs)
-	err := row.Scan(&w.Id, &w.Name)
+// GetItems возвращает список складов
+func (ref *ReferenceWarehouses) GetItems(offset int, limit int) ([]Whs, int, error) {
+	items, count, err := ref.getItems(offset, limit, 0)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return w, nil
+	retVal := make([]Whs, len(items))
+	for idx, item := range items {
+		u := new(Whs)
+		u.RefItem = item
+		retVal[idx] = *u
+	}
+	return retVal, count, nil
 }
 
-// GetWarehouses возвращает список складов
-func (ws *WhsService) GetWarehouses() ([]Whs, error) {
-	sqlProd := "SELECT w.id, w.name FROM whs w"
-	rows, err := ws.Storage.Query(sqlProd)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	whss := make([]Whs, 0, 10)
-	for rows.Next() {
-		w := new(Whs)
-		err = rows.Scan(&w.Id, &w.Name)
-		whss = append(whss, *w)
-	}
-	return whss, nil
+// FindById возвращает склад по идентификатору
+func (ref *ReferenceWarehouses) FindById(whsId int64) (*Whs, error) {
+	item, err := ref.findItemById(whsId)
+	u := new(Whs)
+	u.RefItem = *item
+	return u, err
 }
 
 // GetZones возвращает список зон склада
-func (ws *WhsService) GetZones(whs *Whs) ([]Zone, error) {
-	return ws.GetZonesByWhsId(whs.Id)
+func (ref *ReferenceWarehouses) GetZones(whs *Whs) ([]Zone, error) {
+	return ref.GetZonesByWhsId(whs.Id)
 }
 
 // GetZonesByWhsId	возвращает список зон склада по его идентификатору
-func (ws *WhsService) GetZonesByWhsId(whsId int) ([]Zone, error) {
-	sqlZones := "SELECT id, name, zone_type FROM zones WHERE whs_id = $1"
+func (ref *ReferenceWarehouses) GetZonesByWhsId(whsId int) ([]Zone, error) {
+	sqlZones := "SELECT id, name, zone_type FROM zones WHERE parent_id = $1"
 
-	rows, err := ws.Storage.Db.Query(sqlZones, whsId)
+	rows, err := ref.Db.Query(sqlZones, whsId)
 	if err != nil {
 		return nil, err
 	}

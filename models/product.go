@@ -16,17 +16,143 @@ type Product struct {
 	Size         SpecificSize `json:"size"`
 }
 
-type ProductService struct {
-	Storage *Storage
-	Reference
-}
-
 type ReferenceProducts struct {
 	Reference
 }
 
-// CreateProduct создает новый продукт
-func (ref *ReferenceProducts) CreateProduct(p *Product) (int64, error) {
+// GetItems возвращает список продуктов
+func (ref *ReferenceProducts) GetItems(offset int, limit int) ([]Product, int, error) {
+	var count int
+
+	sqlProd := "SELECT p.id, p.name, p.item_number, p.manufacturer_id, m.name FROM products p " +
+		"		LEFT JOIN manufacturers m ON p.manufacturer_id = m.id" +
+		"		ORDER BY p.name ASC"
+
+	if limit == 0 {
+		limit = 10
+	}
+	rows, err := ref.Db.Query(sqlProd+" LIMIT $1 OFFSET $2", limit, offset)
+	if err != nil {
+		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	defer rows.Close()
+
+	prods := make([]Product, count, 10)
+	for rows.Next() {
+		p := new(Product)
+		err = rows.Scan(&p.Id, &p.Name, &p.ItemNumber, &p.Manufacturer.Id, &p.Manufacturer.Name)
+
+		pBarcodes, err := ref.GetBarcodes(p.Id) // пока так
+		if err != nil {
+			return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
+		}
+		p.Barcodes = pBarcodes
+
+		prods = append(prods, *p)
+	}
+
+	sqlCount := fmt.Sprintf("SELECT COUNT(*) as count FROM ( %s ) sub", sqlProd)
+	err = ref.Db.QueryRow(sqlCount).Scan(&count)
+	if err != nil {
+		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	return prods, count, nil
+}
+
+// FindById возвращает продукт по внутреннему идентификатору
+func (ref *ReferenceProducts) FindById(productId int64) (*Product, error) {
+
+	sqlCell := "SELECT p.id, p.name, p.item_number, p.manufacturer_id, m.name as manufacturer_name " +
+		"FROM products p " +
+		"LEFT JOIN manufacturers m ON p.manufacturer_id = m.id " +
+		"WHERE p.id = $1"
+	row := ref.Db.QueryRow(sqlCell, productId)
+	p := new(Product)
+	err := row.Scan(&p.Id, &p.Name, &p.ItemNumber, &p.Manufacturer.Id, &p.Manufacturer.Name)
+	if err != nil {
+		return nil, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+
+	pBarcodes, err := ref.GetBarcodes(p.Id)
+	if err != nil {
+		return nil, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	p.Barcodes = pBarcodes
+	return p, nil
+}
+
+// FindByBarcode возвращает продукт по штрих-коду
+func (ref *ReferenceProducts) FindByBarcode(barcodeStr string) ([]Product, error) {
+	var pId int64
+	var bcType int
+	var bcVal string
+	prods := make([]Product, 0, 0)
+
+	sqlBc := "SELECT parent_id, name, barcode_type FROM barcodes WHERE name = $1"
+
+	rows, err := ref.Db.Query(sqlBc, barcodeStr)
+	if err != nil {
+		return prods, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+
+	for rows.Next() {
+		err := rows.Scan(&pId, &bcVal, &bcType)
+		if err != nil {
+			return prods, &core.WrapError{Err: err, Code: core.SystemError}
+		}
+		p, err := ref.FindById(pId)
+		if err != nil {
+			return prods, &core.WrapError{Err: err, Code: core.SystemError}
+		}
+		prods = append(prods, *p)
+	}
+
+	return prods, nil
+}
+
+// GetBarcodes возвращает список штрих-кодов продукта
+func (ref *ReferenceProducts) GetBarcodes(productId int64) ([]Barcode, error) {
+
+	var id int64
+	var bcVal string
+	var bcType int
+	bcArr := make([]Barcode, 0, 0)
+
+	sqlBc := "SELECT id, name, barcode_type FROM barcodes WHERE parent_id = $1"
+	rows, err := ref.Db.Query(sqlBc, productId)
+	if err != nil {
+		return nil, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err := rows.Scan(&id, &bcVal, &bcType)
+		if err != nil {
+			return nil, &core.WrapError{Err: err, Code: core.SystemError}
+		}
+		b := Barcode{
+			id,
+			bcVal,
+			bcType,
+			productId,
+		}
+		bcArr = append(bcArr, b)
+	}
+
+	return bcArr, nil
+}
+
+func (ref *ReferenceProducts) FindManufacturerByName(mnfName string) ([]Manufacturer, error) {
+	m := ReferenceManufacturers{Reference: ref.Reference}
+	return m.FindByName(mnfName)
+}
+
+func (ref *ReferenceProducts) GetSuggestion(text string, limit int) ([]string, error) {
+	return ref.getSuggestion(text, limit)
+}
+
+// Create создает новый продукт
+func (ref *ReferenceProducts) Create(p *Product) (int64, error) {
 	pId := int64(0)
 	mId := int64(0)
 
@@ -96,135 +222,8 @@ func (ref *ReferenceProducts) CreateProduct(p *Product) (int64, error) {
 	return pId, nil
 }
 
-// GetProductBarcodes возвращает список штрих-кодов продукта
-func (ref *ReferenceProducts) GetProductBarcodes(productId int64) ([]Barcode, error) {
-
-	var id int64
-	var bcVal string
-	var bcType int
-	bcArr := make([]Barcode, 0, 0)
-
-	sqlBc := "SELECT id, name, barcode_type FROM barcodes WHERE parent_id = $1"
-	rows, err := ref.Db.Query(sqlBc, productId)
-	if err != nil {
-		return nil, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		err := rows.Scan(&id, &bcVal, &bcType)
-		if err != nil {
-			return nil, &core.WrapError{Err: err, Code: core.SystemError}
-		}
-		b := Barcode{
-			id,
-			bcVal,
-			bcType,
-			productId,
-		}
-		bcArr = append(bcArr, b)
-	}
-
-	return bcArr, nil
-}
-
-// FindProductById возвращает продукт по внутреннему идентификатору
-func (ref *ReferenceProducts) FindProductById(productId int64) (*Product, error) {
-
-	sqlCell := "SELECT p.id, p.name, p.item_number, p.manufacturer_id, m.name as manufacturer_name " +
-		"FROM products p " +
-		"LEFT JOIN manufacturers m ON p.manufacturer_id = m.id " +
-		"WHERE p.id = $1"
-	row := ref.Db.QueryRow(sqlCell, productId)
-	p := new(Product)
-	err := row.Scan(&p.Id, &p.Name, &p.ItemNumber, &p.Manufacturer.Id, &p.Manufacturer.Name)
-	if err != nil {
-		return nil, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-
-	pBarcodes, err := ref.GetProductBarcodes(p.Id)
-	if err != nil {
-		return nil, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-	p.Barcodes = pBarcodes
-	return p, nil
-}
-
-// FindProductsByBarcode возвращает продукт по штрих-коду
-func (ref *ReferenceProducts) FindProductsByBarcode(barcodeStr string) ([]Product, error) {
-	var pId int64
-	var bcType int
-	var bcVal string
-	prods := make([]Product, 0, 0)
-
-	sqlBc := "SELECT parent_id, name, barcode_type FROM barcodes WHERE name = $1"
-
-	rows, err := ref.Db.Query(sqlBc, barcodeStr)
-	if err != nil {
-		return prods, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-
-	for rows.Next() {
-		err := rows.Scan(&pId, &bcVal, &bcType)
-		if err != nil {
-			return prods, &core.WrapError{Err: err, Code: core.SystemError}
-		}
-		p, err := ref.FindProductById(pId)
-		if err != nil {
-			return prods, &core.WrapError{Err: err, Code: core.SystemError}
-		}
-		prods = append(prods, *p)
-	}
-
-	return prods, nil
-}
-
-func (ref *ReferenceProducts) FindManufacturerByName(mnfName string) ([]Manufacturer, error) {
-	m := ReferenceManufacturers{Reference: ref.Reference}
-	return m.FindManufacturerByName(mnfName)
-}
-
-// GetProducts возвращает список продуктов
-func (ref *ReferenceProducts) GetProducts(offset int, limit int) ([]Product, int, error) {
-	var count int
-
-	sqlProd := "SELECT p.id, p.name, p.item_number, p.manufacturer_id, m.name FROM products p " +
-		"		LEFT JOIN manufacturers m ON p.manufacturer_id = m.id" +
-		"		ORDER BY p.name ASC"
-
-	if limit == 0 {
-		limit = 10
-	}
-	rows, err := ref.Db.Query(sqlProd+" LIMIT $1 OFFSET $2", limit, offset)
-	if err != nil {
-		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-	defer rows.Close()
-
-	prods := make([]Product, count, 10)
-	for rows.Next() {
-		p := new(Product)
-		err = rows.Scan(&p.Id, &p.Name, &p.ItemNumber, &p.Manufacturer.Id, &p.Manufacturer.Name)
-
-		pBarcodes, err := ref.GetProductBarcodes(p.Id) // пока так
-		if err != nil {
-			return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
-		}
-		p.Barcodes = pBarcodes
-
-		prods = append(prods, *p)
-	}
-
-	sqlCount := fmt.Sprintf("SELECT COUNT(*) as count FROM ( %s ) sub", sqlProd)
-	err = ref.Db.QueryRow(sqlCount).Scan(&count)
-	if err != nil {
-		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-	return prods, count, nil
-}
-
-// UpdateProduct создает новый продукт
-func (ref *ReferenceProducts) UpdateProduct(p *Product) (int64, error) {
+// Update создает новый продукт
+func (ref *ReferenceProducts) Update(p *Product) (int64, error) {
 	mId := int64(0)
 
 	// сначала посмотрим производителя
@@ -298,10 +297,7 @@ func (ref *ReferenceProducts) UpdateProduct(p *Product) (int64, error) {
 	return p.Id, nil
 }
 
-func (ref *ReferenceProducts) GetSuggestionProducts(text string, limit int) ([]string, error) {
-	return ref.getSuggestion(text, limit)
-}
-
-func (ref *ReferenceProducts) DeleteProduct(p *Product) (int64, error) {
+// Delete удаляет продукт
+func (ref *ReferenceProducts) Delete(p *Product) (int64, error) {
 	return ref.deleteItem(p.Id)
 }

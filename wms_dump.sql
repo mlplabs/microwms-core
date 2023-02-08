@@ -449,7 +449,7 @@ COPY public.whs (id, name) FROM stdin;
 -- Data for Name: zones; Type: TABLE DATA; Schema: public; Owner: devuser
 --
 
-COPY public.zones (id, name, whs_id, zone_type) FROM stdin;
+COPY public.zones (id, name, parent_id, zone_type) FROM stdin;
 \.
 
 
