@@ -33,7 +33,11 @@ func (ref *ReferenceBarcodes) GetBarcodes(offset int, limit int) ([]Barcode, int
 	fields := []string{"id", "name", "barcode_type", "parent_id"}
 	fieldsStr := strings.Join(fields, ", ")
 
-	pointers := make([]interface{}, len(fields))
+	row := make([][]byte, len(fields))
+	rowPtr := make([]any, len(fields))
+	for i := range row {
+		rowPtr[i] = &row[i]
+	}
 
 	var count int
 
@@ -52,7 +56,7 @@ func (ref *ReferenceBarcodes) GetBarcodes(offset int, limit int) ([]Barcode, int
 	for rows.Next() {
 		b := new(Barcode)
 		//err = rows.Scan(&b.Id, &b.Name, &b.Type, &b.ProdId)
-		err = rows.Scan(pointers...)
+		err = rows.Scan(rowPtr...)
 		bcs = append(bcs, *b)
 	}
 
