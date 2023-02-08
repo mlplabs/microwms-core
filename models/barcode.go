@@ -37,7 +37,7 @@ func (ref *ReferenceBarcodes) GetBarcodes(offset int, limit int) ([]Barcode, int
 
 	var count int
 
-	sqlBc := fmt.Sprintf("SELECT %s FROM %s b ORDER BY m.name ASC", fieldsStr, ref.Name)
+	sqlBc := fmt.Sprintf("SELECT %s FROM %s ORDER BY name ASC", fieldsStr, ref.Name)
 
 	if limit == 0 {
 		limit = 10
