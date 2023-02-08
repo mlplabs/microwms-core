@@ -30,10 +30,14 @@ func (ref *ReferenceBarcodes) CreateBarcode(b *Barcode) (int64, error) {
 
 // GetBarcodes возвращает список штрих-кодов
 func (ref *ReferenceBarcodes) GetBarcodes(offset int, limit int) ([]Barcode, int, error) {
+	fields := []string{"id", "name", "barcode_type", "parent_id"}
+	fieldsStr := strings.Join(fields, ", ")
+
+	pointers := make([]interface{}, len(fields))
 
 	var count int
 
-	sqlBc := fmt.Sprintf("SELECT b.id, b.name, b.barcode_type, b.parent_id FROM %s b ORDER BY m.name ASC", ref.Name)
+	sqlBc := fmt.Sprintf("SELECT %s FROM %s b ORDER BY m.name ASC", fieldsStr, ref.Name)
 
 	if limit == 0 {
 		limit = 10
@@ -47,7 +51,8 @@ func (ref *ReferenceBarcodes) GetBarcodes(offset int, limit int) ([]Barcode, int
 	bcs := make([]Barcode, count, 10)
 	for rows.Next() {
 		b := new(Barcode)
-		err = rows.Scan(&b.Id, &b.Name, &b.Type, &b.ProdId)
+		//err = rows.Scan(&b.Id, &b.Name, &b.Type, &b.ProdId)
+		err = rows.Scan(pointers...)
 		bcs = append(bcs, *b)
 	}
 
@@ -95,12 +100,8 @@ func (ref *ReferenceBarcodes) FindBarcodesByName(bcName string) ([]Barcode, erro
 
 // FindBarcodesByProdId возвращает список штрих-кодов по товару (владельцу)
 func (ref *ReferenceBarcodes) FindBarcodesByProdId(prodId int64) ([]Barcode, error) {
-	fields := []string{"id", "name", "barcode_type", "parent_id"}
-	fieldsStr := strings.Join(fields, ", ")
-	pointers := make([]interface{}, len(fields))
-
 	retBc := make([]Barcode, 0)
-	sql := fmt.Sprintf("SELECT %s FROM %s WHERE name = $1", fieldsStr, ref.Parent)
+	sql := fmt.Sprintf("SELECT id, name, type, parent_id FROM %s WHERE name = $1", ref.Parent)
 	rows, err := ref.Db.Query(sql, prodId)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
@@ -108,8 +109,7 @@ func (ref *ReferenceBarcodes) FindBarcodesByProdId(prodId int64) ([]Barcode, err
 	defer rows.Close()
 	for rows.Next() {
 		b := Barcode{}
-		//err := rows.Scan(&b.Id, &b.Name, &b.Type, &b.ProdId)
-		err := rows.Scan(pointers...)
+		err := rows.Scan(&b.Id, &b.Name, &b.Type, &b.ProdId)
 		if err != nil {
 			return nil, &core.WrapError{Err: err, Code: core.SystemError}
 		}
