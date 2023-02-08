@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/mlplabs/microwms-core/core"
-	"strconv"
 	"strings"
 )
 
@@ -22,15 +21,14 @@ func (r *Reference) getFields() []string {
 func (r *Reference) getItems(offset int, limit int) ([]RefItem, int, error) {
 	var count int
 
-	fieldsStr := strings.Join(r.Fields, ", ")
+	//fieldsStr := strings.Join(r.Fields, ", ")
+	//row := make([][]byte, len(r.Fields))
+	//rowPtr := make([]any, len(r.Fields))
+	//for i := range row {
+	//	rowPtr[i] = &row[i]
+	//}
 
-	row := make([][]byte, len(r.Fields))
-	rowPtr := make([]any, len(r.Fields))
-	for i := range row {
-		rowPtr[i] = &row[i]
-	}
-
-	sqlSel := fmt.Sprintf("SELECT %s FROM %s ORDER BY name ASC", fieldsStr, r.Name)
+	sqlSel := fmt.Sprintf("SELECT id, name FROM %s ORDER BY name ASC", r.Name)
 
 	if limit == 0 {
 		limit = 10
@@ -44,11 +42,11 @@ func (r *Reference) getItems(offset int, limit int) ([]RefItem, int, error) {
 	items := make([]RefItem, count, 10)
 	for rows.Next() {
 		item := new(RefItem)
-		//err = rows.Scan(&item.Id, &item.Name, rowPtr...)
-		err = rows.Scan(rowPtr...)
-		id, _ := strconv.Atoi(string(row[0]))
-		item.Id = int64(id)
-		item.Name = string(row[1])
+		//err = rows.Scan(rowPtr...)
+		//id, _ := strconv.Atoi(string(row[0]))
+		//item.Id = int64(id)
+		//item.Name = string(row[1])
+		err = rows.Scan(&item.Id, &item.Name)
 		items = append(items, *item)
 	}
 
