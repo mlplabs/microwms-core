@@ -4,7 +4,7 @@ package models
 // Обязательно содержит минимум 3 зоны Zone{} - приемки, хранения и отгрузки.
 // Зоны приемки и отгрузки не может быть более 1, эти зоны являются входом и выходом на складе соответственно
 type Whs struct {
-	Id             int    `json:"id"`
+	Id             int64  `json:"id"`
 	Name           string `json:"name"`
 	Address        string `json:"address"`
 	AcceptanceZone Zone   `json:"-"`
@@ -46,7 +46,7 @@ func (ref *ReferenceWarehouses) GetZones(whs *Whs) ([]Zone, error) {
 }
 
 // GetZonesByWhsId	возвращает список зон склада по его идентификатору
-func (ref *ReferenceWarehouses) GetZonesByWhsId(whsId int) ([]Zone, error) {
+func (ref *ReferenceWarehouses) GetZonesByWhsId(whsId int64) ([]Zone, error) {
 	sqlZones := "SELECT id, name, zone_type FROM zones WHERE parent_id = $1"
 
 	rows, err := ref.Db.Query(sqlZones, whsId)
