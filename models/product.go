@@ -227,9 +227,8 @@ func (ref *ReferenceProducts) Update(p *Product) (int64, error) {
 	mId := int64(0)
 
 	// сначала посмотрим производителя
-	mId = p.Manufacturer.Id
+	//	mId = p.Manufacturer.Id // Производителя могли поменять - ищем по имени или создаем
 
-	// если имя без id, то поищем сами и если будет 1, то его и возьмем
 	if mId == 0 && strings.TrimSpace(p.Manufacturer.Name) != "" {
 		mnfs, err := ref.FindManufacturerByName(p.Manufacturer.Name)
 		if err != nil {
