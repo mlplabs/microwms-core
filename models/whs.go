@@ -66,3 +66,20 @@ func (ref *ReferenceWarehouses) GetZonesByWhsId(whsId int) ([]Zone, error) {
 	}
 	return res, nil
 }
+
+// Create создает новый склад
+func (ref *ReferenceWarehouses) Create(u *Whs) (int64, error) {
+	// TODO: необходимо создать storage
+	return ref.createItem(u)
+}
+
+// Update обновляет пользователя
+func (ref *ReferenceWarehouses) Update(u *Whs) (int64, error) {
+	return ref.updateItem(u)
+}
+
+// Delete удаляет склад
+func (ref *ReferenceWarehouses) Delete(u *Whs) (int64, error) {
+	// TODO: необходимо удаление дочерних элементов
+	return ref.deleteItem(u.Id)
+}
