@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/mlplabs/microwms-core/core"
+	"strconv"
 	"strings"
 )
 
@@ -11,12 +12,25 @@ type Reference struct {
 	Name   string
 	Parent string
 	Db     *sql.DB
+	Fields []string
+}
+
+func (r *Reference) getFields() []string {
+	return r.Fields
 }
 
 func (r *Reference) getItems(offset int, limit int) ([]RefItem, int, error) {
 	var count int
 
-	sqlSel := fmt.Sprintf("SELECT id, name FROM %s ORDER BY name ASC", r.Name)
+	fieldsStr := strings.Join(r.Fields, ", ")
+
+	row := make([][]byte, len(r.Fields))
+	rowPtr := make([]any, len(r.Fields))
+	for i := range row {
+		rowPtr[i] = &row[i]
+	}
+
+	sqlSel := fmt.Sprintf("SELECT %s FROM %s ORDER BY name ASC", fieldsStr, r.Name)
 
 	if limit == 0 {
 		limit = 10
@@ -30,7 +44,10 @@ func (r *Reference) getItems(offset int, limit int) ([]RefItem, int, error) {
 	items := make([]RefItem, count, 10)
 	for rows.Next() {
 		item := new(RefItem)
-		err = rows.Scan(&item.Id, &item.Name)
+		//err = rows.Scan(&item.Id, &item.Name, rowPtr...)
+		id, _ := strconv.Atoi(string(row[0]))
+		item.Id = int64(id)
+		item.Name = string(row[1])
 		items = append(items, *item)
 	}
 

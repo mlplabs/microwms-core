@@ -102,8 +102,9 @@ func (s *Storage) GetUserService() *UserService {
 func (s *Storage) GetRefManufacturers() *ReferenceManufacturers {
 	return &ReferenceManufacturers{
 		Reference{
-			Name: "manufacturers",
-			Db:   s.Db,
+			Name:   "manufacturers",
+			Db:     s.Db,
+			Fields: []string{"id", "name"},
 		},
 	}
 }
@@ -111,8 +112,9 @@ func (s *Storage) GetRefManufacturers() *ReferenceManufacturers {
 func (s *Storage) GetRefUsers() *ReferenceUsers {
 	return &ReferenceUsers{
 		Reference{
-			Name: "users",
-			Db:   s.Db,
+			Name:   "users",
+			Db:     s.Db,
+			Fields: []string{"id", "name"},
 		},
 	}
 }
@@ -120,8 +122,9 @@ func (s *Storage) GetRefUsers() *ReferenceUsers {
 func (s *Storage) GetRefProducts() *ReferenceProducts {
 	return &ReferenceProducts{
 		Reference{
-			Name: "products",
-			Db:   s.Db,
+			Name:   "products",
+			Db:     s.Db,
+			Fields: []string{"id", "name"},
 		},
 	}
 }
@@ -132,6 +135,7 @@ func (s *Storage) GetRefBarcodes() *ReferenceBarcodes {
 			Name:   "barcodes",
 			Parent: "products",
 			Db:     s.Db,
+			Fields: []string{"id", "name", "barcode_type", "parent_id"},
 		},
 	}
 }
