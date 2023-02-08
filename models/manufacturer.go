@@ -42,10 +42,10 @@ func (ref *ReferenceManufacturers) FindByName(valName string) ([]Manufacturer, e
 		return nil, err
 	}
 	retVal := make([]Manufacturer, len(items))
-	for _, item := range items {
+	for idx, item := range items {
 		m := new(Manufacturer)
 		m.RefItem = item
-		retVal = append(retVal, *m)
+		retVal[idx] = *m
 	}
 	return retVal, err
 }
