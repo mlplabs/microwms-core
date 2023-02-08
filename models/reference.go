@@ -24,6 +24,10 @@ func (r *Reference) getItems(offset int, limit int, parentId int64) ([]RefItem, 
 	//}
 
 	args := make([]any, 0)
+
+	if limit == 0 {
+		limit = 10
+	}
 	args = append(args, limit)
 	args = append(args, offset)
 
@@ -34,10 +38,6 @@ func (r *Reference) getItems(offset int, limit int, parentId int64) ([]RefItem, 
 
 	sqlSel := fmt.Sprintf("SELECT id, name FROM %s %s ORDER BY name ASC", r.Name, sqlCond)
 
-	if limit == 0 {
-		limit = 10
-	}
-	//rows, err := r.Db.Query(sqlSel+" LIMIT $1 OFFSET $2", limit, offset, parentId)
 	rows, err := r.Db.Query(sqlSel+" LIMIT $1 OFFSET $2", args...)
 	if err != nil {
 		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}

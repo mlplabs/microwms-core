@@ -204,9 +204,9 @@ func (ref *ReferenceProducts) Create(p *Product) (int64, error) {
 
 	if p.Barcodes != nil {
 		for _, bc := range p.Barcodes {
-			sqlBc := "INSERT INTO barcodes (parent_id, barcode, barcode_type) " +
+			sqlBc := "INSERT INTO barcodes (parent_id, name, barcode_type) " +
 				"VALUES($1, $2, $3) " +
-				"ON CONFLICT (parent_id, barcode, barcode_type) DO UPDATE SET parent_id=$1, barcode=$2, barcode_type=$3"
+				"ON CONFLICT (parent_id, name, barcode_type) DO UPDATE SET parent_id=$1, name=$2, barcode_type=$3"
 			_, err := tx.Exec(sqlBc, pId, bc.Name, bc.Type)
 			if err != nil {
 				tx.Rollback()
