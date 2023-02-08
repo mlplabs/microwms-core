@@ -143,7 +143,12 @@ func (ref *ReferenceProducts) GetBarcodes(productId int64) ([]Barcode, error) {
 }
 
 func (ref *ReferenceProducts) FindManufacturerByName(mnfName string) ([]Manufacturer, error) {
-	m := ReferenceManufacturers{Reference: ref.Reference}
+	m := &ReferenceManufacturers{
+		Reference: Reference{
+			Name: "manufacturers",
+			Db:   ref.Db,
+		},
+	}
 	return m.FindByName(mnfName)
 }
 
