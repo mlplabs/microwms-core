@@ -45,6 +45,7 @@ func (r *Reference) getItems(offset int, limit int) ([]RefItem, int, error) {
 	for rows.Next() {
 		item := new(RefItem)
 		//err = rows.Scan(&item.Id, &item.Name, rowPtr...)
+		err = rows.Scan(rowPtr...)
 		id, _ := strconv.Atoi(string(row[0]))
 		item.Id = int64(id)
 		item.Name = string(row[1])
