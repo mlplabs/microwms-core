@@ -23,8 +23,13 @@ func (r *Reference) getItems(offset int, limit int, parentId int64) ([]RefItem, 
 	//	rowPtr[i] = &row[i]
 	//}
 
+	args := make([]any, 0)
+	args = append(args, limit)
+	args = append(args, offset)
+
 	if r.ParentName != "" && parentId != 0 {
 		sqlCond = "WHERE parent_id = $3"
+		args = append(args, parentId)
 	}
 
 	sqlSel := fmt.Sprintf("SELECT id, name FROM %s %s ORDER BY name ASC", r.Name, sqlCond)
@@ -32,7 +37,8 @@ func (r *Reference) getItems(offset int, limit int, parentId int64) ([]RefItem, 
 	if limit == 0 {
 		limit = 10
 	}
-	rows, err := r.Db.Query(sqlSel+" LIMIT $1 OFFSET $2", limit, offset, parentId)
+	//rows, err := r.Db.Query(sqlSel+" LIMIT $1 OFFSET $2", limit, offset, parentId)
+	rows, err := r.Db.Query(sqlSel+" LIMIT $1 OFFSET $2", args...)
 	if err != nil {
 		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 	}
