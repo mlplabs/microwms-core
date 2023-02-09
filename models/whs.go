@@ -125,7 +125,7 @@ func (ref *ReferenceWarehouses) Create(u *Whs) (int64, error) {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
-	sqlCreate := fmt.Sprintf("INSERT INTO %s (name) VALUES ($1, $2) RETURNING id", ref.Name)
+	sqlCreate := fmt.Sprintf("INSERT INTO %s (name, address) VALUES ($1, $2) RETURNING id", ref.Name)
 	err = tx.QueryRow(sqlCreate, u.Name, u.Address).Scan(&u.Id)
 	if err != nil {
 		tx.Rollback()
