@@ -4,8 +4,6 @@ package models
 // Обязательно содержит минимум 3 зоны Zone{} - приемки, хранения и отгрузки.
 // Зоны приемки и отгрузки не может быть более 1, эти зоны являются входом и выходом на складе соответственно
 type Whs struct {
-	Id             int64  `json:"id"`
-	Name           string `json:"name"`
 	Address        string `json:"address"`
 	AcceptanceZone Zone   `json:"-"`
 	ShippingZone   Zone   `json:"-"`
