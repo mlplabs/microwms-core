@@ -148,11 +148,7 @@ func (ref *ReferenceWarehouses) Create(u *Whs) (int64, error) {
 		tx.Rollback()
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
-	err = tx.Commit()
-	if err != nil {
-		tx.Rollback()
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
-	}
+
 	sqlStorage := fmt.Sprintf(
 		"create table if not exists storage%d ( "+
 			"zone_id  integer, "+
@@ -160,7 +156,17 @@ func (ref *ReferenceWarehouses) Create(u *Whs) (int64, error) {
 			"prod_id  integer,	"+
 			"quantity integer ); "+
 			"alter table storage%d owner to devuser;", u.Id, u.Id, u.Id)
-	ref.Db.Exec(sqlStorage)
+	_, err = tx.Exec(sqlStorage)
+	if err != nil {
+		tx.Rollback()
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		tx.Rollback()
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
+	}
 
 	return u.GetId(), nil
 }
