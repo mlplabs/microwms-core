@@ -62,7 +62,7 @@ func (ref *ReferenceWarehouses) GetById(whsId int64) (*WhsObject, error) {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
-	sqlZ := "SELECT * FROM zones WHERE parent_id = $1"
+	sqlZ := "SELECT id, name, parent_id, zone_type FROM zones WHERE parent_id = $1"
 	rows, err := ref.Db.Query(sqlZ, whsId)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
@@ -70,7 +70,7 @@ func (ref *ReferenceWarehouses) GetById(whsId int64) (*WhsObject, error) {
 	defer rows.Close()
 	for rows.Next() {
 		z := Zone{}
-		err = rows.Scan(&z.Id, &z.Name, &z.ZoneType)
+		err = rows.Scan(&z.Id, &z.Name, &z.ParentId, &z.ZoneType)
 		if z.ZoneType == ZoneTypeIncoming {
 			w.AcceptanceZone = z
 		}
