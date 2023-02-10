@@ -119,6 +119,15 @@ func (s *Storage) GetRefBarcodes() *ReferenceBarcodes {
 	}
 }
 
+func (s *Storage) GetDocReceipt() *DocumentReceipt {
+	return &DocumentReceipt{
+		Document: Document{
+			Name: "receipt_headers",
+			Db:   s.Db,
+		},
+	}
+}
+
 func (s *Storage) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return s.Db.Query(query, args...)
 }
