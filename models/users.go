@@ -47,7 +47,7 @@ func (ref *ReferenceUsers) FindByName(valName string) ([]User, error) {
 	return retVal, err
 }
 
-func (ref *ReferenceUsers) GetSuggestion(text string, limit int) ([]string, error) {
+func (ref *ReferenceUsers) GetSuggestion(text string, limit int) ([]Suggestion, error) {
 	return ref.getSuggestion(text, limit)
 }
 

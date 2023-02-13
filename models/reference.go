@@ -13,6 +13,11 @@ type Reference struct {
 	Db         *sql.DB
 }
 
+type Suggestion struct {
+	Id int64 `json:"id"`
+	Val string `json:"val"`
+}
+
 func (r *Reference) getItems(offset int, limit int, parentId int64) ([]RefItem, int, error) {
 	var count int
 	sqlCond := ""
@@ -130,8 +135,8 @@ func (r *Reference) findItemByName(name string) ([]RefItem, error) {
 	return retObjList, nil
 }
 
-func (r *Reference) getSuggestion(text string, limit int) ([]string, error) {
-	retVal := make([]string, 0)
+func (r *Reference) getSuggestion(text string, limit int) ([]Suggestion, error) {
+	retVal := make([]Suggestion, 0)
 
 	if strings.TrimSpace(text) == "" {
 		return retVal, &core.WrapError{Err: fmt.Errorf("invalid search text "), Code: core.SystemError}
@@ -140,19 +145,19 @@ func (r *Reference) getSuggestion(text string, limit int) ([]string, error) {
 		limit = 10
 	}
 
-	sqlSel := fmt.Sprintf("SELECT name FROM %s WHERE name LIKE $1 LIMIT $2", r.Name)
+	sqlSel := fmt.Sprintf("SELECT id, name FROM %s WHERE name LIKE $1 LIMIT $2", r.Name)
 	rows, err := r.Db.Query(sqlSel, text+"%", limit)
 	if err != nil {
 		return retVal, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 	defer rows.Close()
 	for rows.Next() {
-		s := ""
-		err := rows.Scan(&s)
+		item := Suggestion{}
+		err := rows.Scan(&item.Id, &item.Val)
 		if err != nil {
 			return retVal, &core.WrapError{Err: err, Code: core.SystemError}
 		}
-		retVal = append(retVal, s)
+		retVal = append(retVal, item)
 	}
 	return retVal, err
 }

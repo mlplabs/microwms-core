@@ -12,6 +12,6 @@ func (dr *DocumentReceipt) Create(doc *DocItem) (int64, error) {
 	return dr.createItem(doc)
 }
 
-func (dr *DocumentReceipt) GetReceiptDocById(id int64) (*DocItem, error) {
+func (dr *DocumentReceipt) GetById(id int64) (*DocItem, error) {
 	return dr.getItemById(id)
 }

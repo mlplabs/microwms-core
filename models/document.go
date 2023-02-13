@@ -126,7 +126,7 @@ func (d *Document) createItem(docItem *DocItem) (int64, error) {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
-	return 0, nil
+	return docItem.Id, nil
 }
 
 // findItemById находит документ по id (без вложений)
@@ -151,7 +151,7 @@ func (d *Document) getItemById(id int64) (*DocItem, error) {
 	sqlH := fmt.Sprintf("SELECT id, number, date, doc_type FROM %s WHERE id = $1", d.Name)
 	row := d.Db.QueryRow(sqlH, id)
 	dateDoc := time.Time{}
-	err := row.Scan(&di.Id, &di.Number, dateDoc, &di.DocType)
+	err := row.Scan(&di.Id, &di.Number, &dateDoc, &di.DocType)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -159,7 +159,10 @@ func (d *Document) getItemById(id int64) (*DocItem, error) {
 	di.Number = di.GetNumber()
 	di.Date = GetDate(dateDoc)
 
-	sqlI := "SELECT row_id, product_id, quantity FROM receipt_items WHERE parent_id = $1"
+	sqlI := "SELECT ri.row_id, ri.product_id, p.name, ri.quantity " +
+		"FROM receipt_items ri " +
+		"LEFT JOIN products p ON ri.product_id = p.id " +
+		"WHERE ri.parent_id = $1"
 	rows, err := d.Db.Query(sqlI, id)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
@@ -167,7 +170,7 @@ func (d *Document) getItemById(id int64) (*DocItem, error) {
 	defer rows.Close()
 	for rows.Next() {
 		r := DocRow{}
-		err = rows.Scan(&r.RowNum, &r.Product.Id, &r.Quantity)
+		err = rows.Scan(&r.RowNum, &r.Product.Id, &r.Product.Name, &r.Quantity)
 		di.Items = append(di.Items, r)
 	}
 	return &di, nil

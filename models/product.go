@@ -152,7 +152,7 @@ func (ref *ReferenceProducts) FindManufacturerByName(mnfName string) ([]Manufact
 	return m.FindByName(mnfName)
 }
 
-func (ref *ReferenceProducts) GetSuggestion(text string, limit int) ([]string, error) {
+func (ref *ReferenceProducts) GetSuggestion(text string, limit int) ([]Suggestion, error) {
 	return ref.getSuggestion(text, limit)
 }
 

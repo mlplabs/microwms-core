@@ -50,7 +50,7 @@ func (ref *ReferenceManufacturers) FindByName(valName string) ([]Manufacturer, e
 	return retVal, err
 }
 
-func (ref *ReferenceManufacturers) GetSuggestion(text string, limit int) ([]string, error) {
+func (ref *ReferenceManufacturers) GetSuggestion(text string, limit int) ([]Suggestion, error) {
 	return ref.getSuggestion(text, limit)
 }
 
