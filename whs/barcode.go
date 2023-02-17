@@ -1,4 +1,4 @@
-package models
+package whs
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Barcode объект штрих-кода
+// Barcode barcode object
 type Barcode struct {
 	Id     int64  `json:"id"`
 	Name   string `json:"name"` // barcode
@@ -14,22 +14,18 @@ type Barcode struct {
 	ProdId int64  `json:"prod_id"`
 }
 
-type ReferenceBarcodes struct {
-	Reference
-}
-
-// CreateBarcode создает новый штрих-код
-func (ref *ReferenceBarcodes) CreateBarcode(b *Barcode) (int64, error) {
-	sqlInsProd := fmt.Sprintf("INSERT INTO %s (name, barcode_type, parent_id) VALUES ($1, $2, $3) RETURNING id", ref.Name)
-	err := ref.Db.QueryRow(sqlInsProd, b.Name, b.Type, b.ProdId).Scan(&b.Id)
+// CreateBarcode creates a new barcode
+func (s *Storage) CreateBarcode(b *Barcode) (int64, error) {
+	sqlInsProd := fmt.Sprintf("INSERT INTO %s (name, barcode_type, parent_id) VALUES ($1, $2, $3) RETURNING id", tableRefBarcodes)
+	err := s.Db.QueryRow(sqlInsProd, b.Name, b.Type, b.ProdId).Scan(&b.Id)
 	if err != nil {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 	return b.Id, nil
 }
 
-// GetBarcodes возвращает список штрих-кодов
-func (ref *ReferenceBarcodes) GetBarcodes(offset int, limit int) ([]Barcode, int, error) {
+// GetBarcodesItems returns a list of barcodes
+func (s *Storage) GetBarcodesItems(offset int, limit int) ([]Barcode, int, error) {
 	fields := []string{"id", "name", "barcode_type", "parent_id"}
 	fieldsStr := strings.Join(fields, ", ")
 
@@ -37,12 +33,12 @@ func (ref *ReferenceBarcodes) GetBarcodes(offset int, limit int) ([]Barcode, int
 
 	var count int
 
-	sqlBc := fmt.Sprintf("SELECT %s FROM %s ORDER BY name ASC", fieldsStr, ref.Name)
+	sqlBc := fmt.Sprintf("SELECT %s FROM %s ORDER BY name ASC", fieldsStr, tableRefBarcodes)
 
 	if limit == 0 {
 		limit = 10
 	}
-	rows, err := ref.Db.Query(sqlBc+" LIMIT $1 OFFSET $2", limit, offset)
+	rows, err := s.Db.Query(sqlBc+" LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -57,17 +53,17 @@ func (ref *ReferenceBarcodes) GetBarcodes(offset int, limit int) ([]Barcode, int
 	}
 
 	sqlCount := fmt.Sprintf("SELECT COUNT(*) as count FROM ( %s ) sub", sqlBc)
-	err = ref.Db.QueryRow(sqlCount).Scan(&count)
+	err = s.Db.QueryRow(sqlCount).Scan(&count)
 	if err != nil {
 		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 	return bcs, count, nil
 }
 
-// FindBarcodeById возвращает штрих-код по внутреннему идентификатору
-func (ref *ReferenceBarcodes) FindBarcodeById(bcId int64) (*Barcode, error) {
-	sqlCell := fmt.Sprintf("SELECT b.id, b.name, b.barcode_type, b.parent_id FROM %s b WHERE b.id = $1", ref.Name)
-	row := ref.Db.QueryRow(sqlCell, bcId)
+// FindBarcodeById returns barcode by internal ID
+func (s *Storage) FindBarcodeById(bcId int64) (*Barcode, error) {
+	sqlCell := fmt.Sprintf("SELECT b.id, b.name, b.barcode_type, b.parent_id FROM %s b WHERE b.id = $1", tableRefBarcodes)
+	row := s.Db.QueryRow(sqlCell, bcId)
 	b := new(Barcode)
 	err := row.Scan(&b.Id, &b.Name, &b.Type, &b.ProdId)
 	if err != nil {
@@ -76,13 +72,13 @@ func (ref *ReferenceBarcodes) FindBarcodeById(bcId int64) (*Barcode, error) {
 	return b, nil
 }
 
-// FindBarcodesByName возвращает список штрих-кодов по наименованию
-// только по значению без типа и привязки
-func (ref *ReferenceBarcodes) FindBarcodesByName(bcName string) ([]Barcode, error) {
+// FindBarcodesByName returns a list of barcodes by name
+// by value only without type and binding
+func (s *Storage) FindBarcodesByName(bcName string) ([]Barcode, error) {
 	retBc := make([]Barcode, 0)
 
-	sqlSel := fmt.Sprintf("SELECT id, name, barcode_type, parent_id FROM %s WHERE name = $1", ref.Name)
-	rows, err := ref.Db.Query(sqlSel, bcName)
+	sqlSel := fmt.Sprintf("SELECT id, name, barcode_type, parent_id FROM %s WHERE name = $1", tableRefBarcodes)
+	rows, err := s.Db.Query(sqlSel, bcName)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -98,11 +94,11 @@ func (ref *ReferenceBarcodes) FindBarcodesByName(bcName string) ([]Barcode, erro
 	return retBc, nil
 }
 
-// FindBarcodesByProdId возвращает список штрих-кодов по товару (владельцу)
-func (ref *ReferenceBarcodes) FindBarcodesByProdId(prodId int64) ([]Barcode, error) {
+// FindBarcodesByProdId returns a list of barcodes for the product (owner)
+func (s *Storage) FindBarcodesByProdId(prodId int64) ([]Barcode, error) {
 	retBc := make([]Barcode, 0)
-	sql := fmt.Sprintf("SELECT id, name, barcode_type, parent_id FROM %s WHERE name = $1", ref.ParentName)
-	rows, err := ref.Db.Query(sql, prodId)
+	sql := fmt.Sprintf("SELECT id, name, barcode_type, parent_id FROM %s WHERE name = $1", tableRefBarcodes)
+	rows, err := s.Db.Query(sql, prodId)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -119,9 +115,9 @@ func (ref *ReferenceBarcodes) FindBarcodesByProdId(prodId int64) ([]Barcode, err
 }
 
 // UpdateBarcode обновляет значение/тип/?привязку? штрих-кода
-func (ref *ReferenceBarcodes) UpdateBarcode(b *Barcode) (int64, error) {
-	sqlUpd := fmt.Sprintf("UPDATE %s SET name=$2, barcode_type=$3, parent_id=$4 WHERE id=$1", ref.Name)
-	res, err := ref.Db.Exec(sqlUpd, b.Id, b.Name, b.Type, b.ProdId)
+func (s *Storage) UpdateBarcode(b *Barcode) (int64, error) {
+	sqlUpd := fmt.Sprintf("UPDATE %s SET name=$2, barcode_type=$3, parent_id=$4 WHERE id=$1", tableRefBarcodes)
+	res, err := s.Db.Exec(sqlUpd, b.Id, b.Name, b.Type, b.ProdId)
 	if err != nil {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -131,7 +127,7 @@ func (ref *ReferenceBarcodes) UpdateBarcode(b *Barcode) (int64, error) {
 	return b.Id, nil
 }
 
-func (ref *ReferenceBarcodes) GetSuggestionBarcodes(text string, limit int) ([]string, error) {
+func (s *Storage) GetSuggestionBarcodes(text string, limit int) ([]string, error) {
 	retVal := make([]string, 0)
 
 	if strings.TrimSpace(text) == "" {
@@ -141,8 +137,8 @@ func (ref *ReferenceBarcodes) GetSuggestionBarcodes(text string, limit int) ([]s
 		limit = 10
 	}
 
-	sqlSel := fmt.Sprintf("SELECT name FROM %s WHERE name LIKE $1 LIMIT $2", ref.Name)
-	rows, err := ref.Db.Query(sqlSel, text+"%", limit)
+	sqlSel := fmt.Sprintf("SELECT name FROM %s WHERE name LIKE $1 LIMIT $2", tableRefBarcodes)
+	rows, err := s.Db.Query(sqlSel, text+"%", limit)
 	if err != nil {
 		return retVal, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -158,9 +154,9 @@ func (ref *ReferenceBarcodes) GetSuggestionBarcodes(text string, limit int) ([]s
 	return retVal, err
 }
 
-func (ref *ReferenceBarcodes) DeleteBarcode(m *Barcode) (int64, error) {
-	sqlDel := fmt.Sprintf("DELETE FROM %s WHERE id=$1", ref.Name)
-	res, err := ref.Db.Exec(sqlDel, m.Id)
+func (s *Storage) DeleteBarcode(m *Barcode) (int64, error) {
+	sqlDel := fmt.Sprintf("DELETE FROM %s WHERE id=$1", tableRefBarcodes)
+	res, err := s.Db.Exec(sqlDel, m.Id)
 	if err != nil {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}

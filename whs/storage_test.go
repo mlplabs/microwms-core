@@ -1,35 +1,34 @@
-package models
+package whs
 
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
 	"testing"
 )
 
-func TestStorage_Init(t *testing.T) {
-	s := new(Storage)
-	s.Init("localhost", "wmsdb", "devuser", "devuser")
-
-	prod32 := Product{
-		Id:       32,
-		Name:     "tedst",
-		Barcodes: make([]Barcode, 0),
-		Size:     SpecificSize{},
-	}
-
-	c := Cell{Id: 2, WhsId: 1, ZoneId: 1}
-	_, err := s.Get(&c, &prod32, 180, nil)
-	if err != nil {
-		fmt.Println(err)
-	}
-	_, err = s.Get(&c, &prod32, 30, nil)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-}
+//func TestStorage_Init(t *testing.T) {
+//	s := new(Storage)
+//	s.Init("localhost", "wmsdb", "devuser", "devuser")
+//
+//	prod32 := Product{
+//		Id:       32,
+//		Name:     "tedst",
+//		Barcodes: make([]Barcode, 0),
+//		Size:     SpecificSize{},
+//	}
+//
+//	c := Cell{Id: 2, WhsId: 1, ZoneId: 1}
+//	_, err := s.GetRow(&c, &prod32, 180, nil)
+//	if err != nil {
+//		fmt.Println(err)
+//	}
+//	_, err = s.GetRow(&c, &prod32, 30, nil)
+//	if err != nil {
+//		fmt.Println(err)
+//	}
+//
+//}
 
 func TestStorage_FindCellById(t *testing.T) {
 	db, mock := NewMock()

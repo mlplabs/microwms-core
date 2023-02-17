@@ -1,33 +1,25 @@
-package models
+package whs
 
 import (
 	"fmt"
 	"github.com/mlplabs/microwms-core/core"
 )
 
-// Whs объект физического склада
-// Обязательно содержит минимум 3 зоны Zone{} - приемки, хранения и отгрузки.
-// Зоны приемки и отгрузки не может быть более 1, эти зоны являются входом и выходом на складе соответственно
+//Whs is a physical warehouse object
+//It must contain at least 3 Zone{} zones - acceptance, storage and shipment.
+//There can be no more than 1 receiving and shipping zones, these zones are the entrance and exit in the warehouse, respectively
 type Whs struct {
-	Address string `json:"address"`
-	RefItem
-}
-
-type WhsObject struct {
+	Address        string `json:"address"`
 	AcceptanceZone Zone   `json:"acceptance_zone"`
 	ShippingZone   Zone   `json:"shipping_zone"`
 	StorageZones   []Zone `json:"storage_zones"`
 	CustomZones    []Zone `json:"custom_zones"`
-	Whs
+	RefItem
 }
 
-type ReferenceWarehouses struct {
-	Reference
-}
-
-// GetItems возвращает список складов
-func (ref *ReferenceWarehouses) GetItems(offset int, limit int, parentId int64) ([]Whs, int, error) {
-	items, count, err := ref.getItems(offset, limit, parentId)
+// GetWhsItems returns a list of warehouses
+func (s *Storage) GetWhsItems(offset int, limit int, parentId int64) ([]Whs, int, error) {
+	items, count, err := s.GetReference(tableRefWhs).getItems(offset, limit, parentId)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -40,30 +32,30 @@ func (ref *ReferenceWarehouses) GetItems(offset int, limit int, parentId int64) 
 	return retVal, count, nil
 }
 
-// FindById возвращает элемент склада по идентификатору
-func (ref *ReferenceWarehouses) FindById(whsId int64) (*Whs, error) {
-	item, err := ref.findItemById(whsId)
+// FindWhsById returns a warehouse item by id
+func (s *Storage) FindWhsById(whsId int64) (*Whs, error) {
+	item, err := s.GetReference(tableRefWhs).findItemById(whsId)
 	u := new(Whs)
 	u.RefItem = *item
 	return u, err
 }
 
-// GetById возвращает объект склада по идентификатору
-func (ref *ReferenceWarehouses) GetById(whsId int64) (*WhsObject, error) {
-	w := new(WhsObject)
+// GetWhsById returns a warehouse object by id
+func (s *Storage) GetWhsById(whsId int64) (*Whs, error) {
+	w := new(Whs)
 	w.StorageZones = make([]Zone, 0)
 	w.CustomZones = make([]Zone, 0)
 
-	sqlWhs := fmt.Sprintf("SELECT id, name, address FROM %s WHERE id = $1", ref.Name)
-	row := ref.Db.QueryRow(sqlWhs, whsId)
+	sqlWhs := fmt.Sprintf("SELECT id, name, address FROM %s WHERE id = $1", tableRefWhs)
+	row := s.Db.QueryRow(sqlWhs, whsId)
 
 	err := row.Scan(&w.Id, &w.Name, &w.Address)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
-	sqlZ := "SELECT id, name, parent_id, zone_type FROM zones WHERE parent_id = $1"
-	rows, err := ref.Db.Query(sqlZ, whsId)
+	sqlZ := fmt.Sprintf("SELECT id, name, parent_id, zone_type FROM %s WHERE parent_id = $1", tableRefZones)
+	rows, err := s.Db.Query(sqlZ, whsId)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -85,47 +77,24 @@ func (ref *ReferenceWarehouses) GetById(whsId int64) (*WhsObject, error) {
 		}
 
 	}
-
 	return w, nil
 }
 
-// GetZones возвращает список зон склада
-func (ref *ReferenceWarehouses) GetZones(whs *Whs) ([]Zone, error) {
-	return ref.GetZonesByWhsId(whs.Id)
+// GetWhsZones returns a warehouse object by id
+func (s *Storage) GetWhsZones(whs *Whs) ([]Zone, error) {
+	return s.FindZonesByParentId(whs.Id)
 }
 
-// GetZonesByWhsId	возвращает список зон склада по его идентификатору
-func (ref *ReferenceWarehouses) GetZonesByWhsId(whsId int64) ([]Zone, error) {
-	sqlZones := "SELECT id, name, zone_type FROM zones WHERE parent_id = $1"
-
-	rows, err := ref.Db.Query(sqlZones, whsId)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	res := make([]Zone, 0)
-	for rows.Next() {
-		z := Zone{}
-		err := rows.Scan(&z.Id, &z.Name, &z.ZoneType)
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, z)
-	}
-	return res, nil
-}
-
-// Create создает новый склад
-func (ref *ReferenceWarehouses) Create(u *Whs) (int64, error) {
+// CreateWhs creates a new warehouse
+func (s *Storage) CreateWhs(u *Whs) (int64, error) {
 	// TODO: необходимо создать storage
 
-	tx, err := ref.Db.Begin()
+	tx, err := s.Db.Begin()
 	if err != nil {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
-	sqlCreate := fmt.Sprintf("INSERT INTO %s (name, address) VALUES ($1, $2) RETURNING id", ref.Name)
+	sqlCreate := fmt.Sprintf("INSERT INTO %s (name, address) VALUES ($1, $2) RETURNING id", "whs")
 	err = tx.QueryRow(sqlCreate, u.Name, u.Address).Scan(&u.Id)
 	if err != nil {
 		tx.Rollback()
@@ -151,6 +120,9 @@ func (ref *ReferenceWarehouses) Create(u *Whs) (int64, error) {
 
 	sqlStorage := fmt.Sprintf(
 		"create table if not exists storage%d ( "+
+			"doc_id   integer default 0 not null, "+
+			"doc_type smallint default 0 not null, "+
+			"row_id   varchar(36) default ''::character varying not null, "+
 			"zone_id  integer, "+
 			"cell_id  integer constraint storage%d_cells_id_fk references cells, "+
 			"prod_id  integer,	"+
@@ -171,13 +143,13 @@ func (ref *ReferenceWarehouses) Create(u *Whs) (int64, error) {
 	return u.GetId(), nil
 }
 
-// Update обновляет пользователя
-func (ref *ReferenceWarehouses) Update(u *Whs) (int64, error) {
-	return ref.updateItem(u)
+// UpdateWhs updates the warehouse
+func (s *Storage) UpdateWhs(u *Whs) (int64, error) {
+	return s.GetReference(tableRefWhs).updateItem(u)
 }
 
-// Delete удаляет склад
-func (ref *ReferenceWarehouses) Delete(u *Whs) (int64, error) {
-	// TODO: необходимо удаление дочерних элементов
-	return ref.deleteItem(u.Id)
+// DeleteWhs deletes warehouse
+func (s *Storage) DeleteWhs(u *Whs) (int64, error) {
+	// TODO: need to remove child elements
+	return s.GetReference(tableRefWhs).deleteItem(u.Id)
 }

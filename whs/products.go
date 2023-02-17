@@ -1,4 +1,4 @@
-package models
+package whs
 
 import (
 	"fmt"
@@ -6,22 +6,17 @@ import (
 	"strings"
 )
 
-// Product единица хранения
+// Product item, storage unit
 type Product struct {
-	Id           int64        `json:"id"`
-	Name         string       `json:"name"`
 	ItemNumber   string       `json:"item_number"`
 	Barcodes     []Barcode    `json:"barcodes"`
 	Manufacturer Manufacturer `json:"manufacturer"`
 	Size         SpecificSize `json:"size"`
+	RefItem
 }
 
-type ReferenceProducts struct {
-	Reference
-}
-
-// GetItems возвращает список продуктов
-func (ref *ReferenceProducts) GetItems(offset int, limit int, parentId int64) ([]Product, int, error) {
+// GetProductsItems returns a list of products
+func (s *Storage) GetProductsItems(offset int, limit int, parentId int64) ([]Product, int, error) {
 	var count int
 
 	sqlProd := "SELECT p.id, p.name, p.item_number, p.manufacturer_id, m.name As manufacturer_name FROM products p " +
@@ -31,7 +26,7 @@ func (ref *ReferenceProducts) GetItems(offset int, limit int, parentId int64) ([
 	if limit == 0 {
 		limit = 10
 	}
-	rows, err := ref.Db.Query(sqlProd+" LIMIT $1 OFFSET $2", limit, offset)
+	rows, err := s.Db.Query(sqlProd+" LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -42,7 +37,7 @@ func (ref *ReferenceProducts) GetItems(offset int, limit int, parentId int64) ([
 		p := new(Product)
 		err = rows.Scan(&p.Id, &p.Name, &p.ItemNumber, &p.Manufacturer.Id, &p.Manufacturer.Name)
 
-		pBarcodes, err := ref.GetBarcodes(p.Id) // пока так
+		pBarcodes, err := s.GetProductsBarcodes(p.Id) // пока так
 		if err != nil {
 			return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 		}
@@ -52,28 +47,28 @@ func (ref *ReferenceProducts) GetItems(offset int, limit int, parentId int64) ([
 	}
 
 	sqlCount := fmt.Sprintf("SELECT COUNT(*) as count FROM ( %s ) sub", sqlProd)
-	err = ref.Db.QueryRow(sqlCount).Scan(&count)
+	err = s.Db.QueryRow(sqlCount).Scan(&count)
 	if err != nil {
 		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 	return prods, count, nil
 }
 
-// FindById возвращает продукт по внутреннему идентификатору
-func (ref *ReferenceProducts) FindById(productId int64) (*Product, error) {
+// FindProductById returns product by internal id
+func (s *Storage) FindProductById(productId int64) (*Product, error) {
 
 	sqlCell := "SELECT p.id, p.name, p.item_number, p.manufacturer_id, m.name as manufacturer_name " +
 		"FROM products p " +
 		"LEFT JOIN manufacturers m ON p.manufacturer_id = m.id " +
 		"WHERE p.id = $1"
-	row := ref.Db.QueryRow(sqlCell, productId)
+	row := s.Db.QueryRow(sqlCell, productId)
 	p := new(Product)
 	err := row.Scan(&p.Id, &p.Name, &p.ItemNumber, &p.Manufacturer.Id, &p.Manufacturer.Name)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
-	pBarcodes, err := ref.GetBarcodes(p.Id)
+	pBarcodes, err := s.GetProductsBarcodes(p.Id)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -81,8 +76,28 @@ func (ref *ReferenceProducts) FindById(productId int64) (*Product, error) {
 	return p, nil
 }
 
-// FindByBarcode возвращает продукт по штрих-коду
-func (ref *ReferenceProducts) FindByBarcode(barcodeStr string) ([]Product, error) {
+// FindProductsByName returns a list of products by name
+func (s *Storage) FindProductsByName(valName string) ([]Product, error) {
+	retItemList := make([]Product, 0)
+	sql := fmt.Sprintf("SELECT id, name, manufacturer_id FROM %s WHERE name = $1", tableRefProducts)
+	rows, err := s.Db.Query(sql, valName)
+	if err != nil {
+		return nil, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	defer rows.Close()
+	for rows.Next() {
+		item := Product{}
+		err = rows.Scan(&item.Id, &item.Name, &item.Manufacturer.Id)
+		if err != nil {
+			return nil, &core.WrapError{Err: err, Code: core.SystemError}
+		}
+		retItemList = append(retItemList, item)
+	}
+	return retItemList, nil
+}
+
+// FindProductsByBarcode returns a product by barcode
+func (s *Storage) FindProductsByBarcode(barcodeStr string) ([]Product, error) {
 	var pId int64
 	var bcType int
 	var bcVal string
@@ -90,7 +105,7 @@ func (ref *ReferenceProducts) FindByBarcode(barcodeStr string) ([]Product, error
 
 	sqlBc := "SELECT parent_id, name, barcode_type FROM barcodes WHERE name = $1"
 
-	rows, err := ref.Db.Query(sqlBc, barcodeStr)
+	rows, err := s.Db.Query(sqlBc, barcodeStr)
 	if err != nil {
 		return prods, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -100,7 +115,7 @@ func (ref *ReferenceProducts) FindByBarcode(barcodeStr string) ([]Product, error
 		if err != nil {
 			return prods, &core.WrapError{Err: err, Code: core.SystemError}
 		}
-		p, err := ref.FindById(pId)
+		p, err := s.FindProductById(pId)
 		if err != nil {
 			return prods, &core.WrapError{Err: err, Code: core.SystemError}
 		}
@@ -110,8 +125,8 @@ func (ref *ReferenceProducts) FindByBarcode(barcodeStr string) ([]Product, error
 	return prods, nil
 }
 
-// GetBarcodes возвращает список штрих-кодов продукта
-func (ref *ReferenceProducts) GetBarcodes(productId int64) ([]Barcode, error) {
+// GetProductsBarcodes returns a list of product barcodes
+func (s *Storage) GetProductsBarcodes(productId int64) ([]Barcode, error) {
 
 	var id int64
 	var bcVal string
@@ -119,7 +134,7 @@ func (ref *ReferenceProducts) GetBarcodes(productId int64) ([]Barcode, error) {
 	bcArr := make([]Barcode, 0, 0)
 
 	sqlBc := "SELECT id, name, barcode_type FROM barcodes WHERE parent_id = $1"
-	rows, err := ref.Db.Query(sqlBc, productId)
+	rows, err := s.Db.Query(sqlBc, productId)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
 	}
@@ -142,76 +157,77 @@ func (ref *ReferenceProducts) GetBarcodes(productId int64) ([]Barcode, error) {
 	return bcArr, nil
 }
 
-func (ref *ReferenceProducts) FindManufacturerByName(mnfName string) ([]Manufacturer, error) {
-	m := &ReferenceManufacturers{
-		Reference: Reference{
-			Name: "manufacturers",
-			Db:   ref.Db,
-		},
-	}
-	return m.FindByName(mnfName)
+func (s *Storage) GetProductsSuggestion(text string, limit int) ([]Suggestion, error) {
+	return s.GetReference(tableRefProducts).getSuggestion(text, limit)
 }
 
-func (ref *ReferenceProducts) GetSuggestion(text string, limit int) ([]Suggestion, error) {
-	return ref.getSuggestion(text, limit)
-}
-
-// Create создает новый продукт
-func (ref *ReferenceProducts) Create(p *Product) (int64, error) {
+// CreateProduct creates a new product
+func (s *Storage) CreateProduct(p *Product) (int64, error) {
 	pId := int64(0)
 	mId := int64(0)
 
-	if p.Id != 0 {
-		return 0, &core.WrapError{
-			Err:  fmt.Errorf("possibly an error: create product with id <> 0"),
-			Code: 0,
-		}
-	}
 	if strings.TrimSpace(p.Name) == "" {
 		return 0, &core.WrapError{Err: fmt.Errorf("required field 'name' is empty"), Code: 0}
 	}
 
+	// When creating a product, we always look for a manufacturer by name, regardless of its ID
+	// because when creating, the user can choose from a list of hints and change the name
 	mId = p.Manufacturer.Id
-
-	if mId == 0 && strings.TrimSpace(p.Manufacturer.Name) != "" {
-		mnfs, err := ref.FindManufacturerByName(p.Manufacturer.Name)
-		if err != nil {
-			return 0, &core.WrapError{Err: err, Code: core.SystemError}
-		}
-		if len(mnfs) > 1 {
-			return 0, &core.WrapError{Err: fmt.Errorf("it is not possible to identify the manufacturer. found %d", len(mnfs)), Code: 0}
-		}
-		if len(mnfs) == 1 {
-			mId = mnfs[0].Id
-		}
+	mnfs, err := s.FindManufacturersByName(p.Manufacturer.Name)
+	if err != nil {
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	if len(mnfs) > 1 {
+		return 0, &core.WrapError{Err: fmt.Errorf("it is not possible to identify the manufacturer. found %d", len(mnfs)), Code: 0}
+	}
+	if len(mnfs) == 1 {
+		mId = mnfs[0].Id
 	}
 
-	tx, err := ref.Db.Begin()
+
+	tx, err := s.Db.Begin()
 	if err != nil {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
+	// If the manufacturer is not found by name, then we create it
 	if mId == 0 {
-		sqlIns := "INSERT INTO manufacturers (name) VALUES ($1) RETURNING id"
-		err := tx.QueryRow(sqlIns, p.Manufacturer.Name).Scan(&mId)
+		sqlIns := fmt.Sprintf("INSERT INTO %s (name) VALUES ($1) RETURNING id", tableRefManufacturers)
+		err = tx.QueryRow(sqlIns, p.Manufacturer.Name).Scan(&mId)
 		if err != nil {
 			tx.Rollback()
 			return 0, &core.WrapError{Err: err, Code: core.SystemError}
 		}
 	}
-
-	sqlInsProd := "INSERT INTO products (name, item_number, manufacturer_id, sz_length, sz_wight, sz_height, sz_weight, sz_volume, sz_uf_volume) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id"
-	err = tx.QueryRow(sqlInsProd, p.Name, p.ItemNumber, mId, p.Size.Length, p.Size.Width, p.Size.Height, p.Size.Weight, p.Size.Volume, p.Size.UsefulVolume).Scan(&pId)
+	
+	prods, err := s.FindProductsByName(p.Name)
 	if err != nil {
-		tx.Rollback()
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
+	// можем получить несколько товаров с одинаковым имененм
+	// надо понять, имеется ли среди ниx товары с таким же производителем
+	for _, v := range prods {
+		if v.Manufacturer.Id == mId {
+			// нашли существующий товар
+			pId = v.Id
+			break
+		}
+	}
 
+	// если с таким именем и производителем не нашли, то создаем новый товар
+	if pId == 0 {
+		sqlInsProd := fmt.Sprintf("INSERT INTO %s (name, item_number, manufacturer_id, sz_length, sz_wight, sz_height, sz_weight, sz_volume, sz_uf_volume) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id", tableRefProducts)
+		err = tx.QueryRow(sqlInsProd, p.Name, p.ItemNumber, mId, p.Size.Length, p.Size.Width, p.Size.Height, p.Size.Weight, p.Size.Volume, p.Size.UsefulVolume).Scan(&pId)
+		if err != nil {
+			tx.Rollback()
+			return 0, &core.WrapError{Err: err, Code: core.SystemError}
+		}
+	}
 	if p.Barcodes != nil {
 		for _, bc := range p.Barcodes {
-			sqlBc := "INSERT INTO barcodes (parent_id, name, barcode_type) " +
+			sqlBc := fmt.Sprintf("INSERT INTO %s (parent_id, name, barcode_type) " +
 				"VALUES($1, $2, $3) " +
-				"ON CONFLICT (parent_id, name, barcode_type) DO UPDATE SET parent_id=$1, name=$2, barcode_type=$3"
+				"ON CONFLICT (parent_id, name, barcode_type) DO UPDATE SET parent_id=$1, name=$2, barcode_type=$3", tableRefBarcodes)
 			_, err := tx.Exec(sqlBc, pId, bc.Name, bc.Type)
 			if err != nil {
 				tx.Rollback()
@@ -227,33 +243,28 @@ func (ref *ReferenceProducts) Create(p *Product) (int64, error) {
 	return pId, nil
 }
 
-// Update создает новый продукт
-func (ref *ReferenceProducts) Update(p *Product) (int64, error) {
+// UpdateProduct updates the product
+func (s *Storage) UpdateProduct(p *Product) (int64, error) {
 	mId := int64(0)
 
-	// сначала посмотрим производителя
-	//	mId = p.Manufacturer.Id // Производителя могли поменять - ищем по имени или создаем
-
-	if mId == 0 && strings.TrimSpace(p.Manufacturer.Name) != "" {
-		mnfs, err := ref.FindManufacturerByName(p.Manufacturer.Name)
-		if err != nil {
-			return 0, &core.WrapError{Err: err, Code: core.SystemError}
-		}
-		if len(mnfs) > 1 {
-			return 0, &core.WrapError{Err: fmt.Errorf("it is not possible to identify the manufacturer. found %d", len(mnfs)), Code: core.SystemError}
-		}
-		if len(mnfs) == 1 {
-			mId = mnfs[0].Id
-		}
+	mnfs, err := s.FindManufacturersByName(p.Manufacturer.Name)
+	if err != nil {
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	if len(mnfs) > 1 {
+		return 0, &core.WrapError{Err: fmt.Errorf("it is not possible to identify the manufacturer. found %d", len(mnfs)), Code: core.SystemError}
+	}
+	if len(mnfs) == 1 {
+		mId = mnfs[0].Id
 	}
 
-	tx, err := ref.Db.Begin()
+	tx, err := s.Db.Begin()
 	if err != nil {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
 	if mId == 0 {
-		sqlIns := "INSERT INTO manufacturers (name) VALUES ($1) RETURNING id"
+		sqlIns := fmt.Sprintf("INSERT INTO %s (name) VALUES ($1) RETURNING id", tableRefManufacturers)
 		err := tx.QueryRow(sqlIns, p.Manufacturer.Name).Scan(&mId)
 		if err != nil {
 			tx.Rollback()
@@ -261,7 +272,7 @@ func (ref *ReferenceProducts) Update(p *Product) (int64, error) {
 		}
 	}
 
-	sqlInsProd := "UPDATE products SET name=$2,manufacturer_id=$3,sz_length=$4,sz_wight=$5,sz_height=$6,sz_weight=$7,sz_volume=$8, sz_uf_volume=$9, item_number=$10 WHERE id=$1"
+	sqlInsProd := fmt.Sprintf("UPDATE %s SET name=$2,manufacturer_id=$3,sz_length=$4,sz_wight=$5,sz_height=$6,sz_weight=$7,sz_volume=$8, sz_uf_volume=$9, item_number=$10 WHERE id=$1", tableRefProducts)
 
 	res, err := tx.Exec(sqlInsProd, p.Id, p.Name, mId, p.Size.Length, p.Size.Width, p.Size.Height, p.Size.Weight, p.Size.Volume, p.Size.UsefulVolume, p.ItemNumber)
 	if err != nil {
@@ -301,7 +312,7 @@ func (ref *ReferenceProducts) Update(p *Product) (int64, error) {
 	return p.Id, nil
 }
 
-// Delete удаляет продукт
-func (ref *ReferenceProducts) Delete(p *Product) (int64, error) {
-	return ref.deleteItem(p.Id)
+// DeleteProduct removes the product
+func (s *Storage) DeleteProduct(p *Product) (int64, error) {
+	return s.GetReference(tableRefProducts).deleteItem(p.Id)
 }

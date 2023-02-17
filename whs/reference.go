@@ -1,4 +1,4 @@
-package models
+package whs
 
 import (
 	"database/sql"
@@ -14,7 +14,7 @@ type Reference struct {
 }
 
 type Suggestion struct {
-	Id int64 `json:"id"`
+	Id  int64  `json:"id"`
 	Val string `json:"val"`
 }
 
@@ -145,7 +145,7 @@ func (r *Reference) getSuggestion(text string, limit int) ([]Suggestion, error) 
 		limit = 10
 	}
 
-	sqlSel := fmt.Sprintf("SELECT id, name FROM %s WHERE name LIKE $1 LIMIT $2", r.Name)
+	sqlSel := fmt.Sprintf("SELECT id, name FROM %s WHERE name ILIKE $1 LIMIT $2", r.Name)
 	rows, err := r.Db.Query(sqlSel, text+"%", limit)
 	if err != nil {
 		return retVal, &core.WrapError{Err: err, Code: core.SystemError}

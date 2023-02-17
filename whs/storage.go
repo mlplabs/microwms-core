@@ -1,10 +1,15 @@
-package models
+package whs
 
 import (
 	"database/sql"
 	"fmt"
 	"github.com/lib/pq"
 )
+
+type docTables struct {
+	Headers string
+	Items   string
+}
 
 // SpecificSize структура весогабаритных характеристик (см/см3/кг)
 // полный объем: length * width * height
@@ -40,6 +45,18 @@ const (
 	CellDynamicPropNotAllowedOut
 )
 
+const (
+	tableRefWhs            = "whs"
+	tableRefProducts       = "products"
+	tableRefManufacturers  = "manufacturers"
+	tableRefBarcodes       = "barcodes"
+	tableRefUsers          = "users"
+	tableRefZones          = "zones"
+	tableRefCells          = "cells"
+	tableDocReceiptHeaders = "receipt_headers"
+	tableDocReceiptItems   = "receipt_items"
+)
+
 type Storage struct {
 	Db *sql.DB
 }
@@ -63,68 +80,18 @@ func (s *Storage) Init(host, dbname, dbuser, dbpass string) error {
 	return nil
 }
 
-func (s *Storage) GetRefWarehouses() *ReferenceWarehouses {
-	return &ReferenceWarehouses{
-		Reference{
-			Name: "whs",
-			Db:   s.Db,
-		},
+func (s *Storage) GetReference(refTableName string) *Reference {
+	return &Reference{
+		Name: refTableName,
+		Db:   s.Db,
 	}
 }
 
-func (s *Storage) GetRefZones() *ReferenceZones {
-	return &ReferenceZones{
-		Reference{
-			Name:       "zones",
-			ParentName: "whs",
-			Db:         s.Db,
-		},
-	}
-}
-
-func (s *Storage) GetRefManufacturers() *ReferenceManufacturers {
-	return &ReferenceManufacturers{
-		Reference: Reference{
-			Name: "manufacturers",
-			Db:   s.Db,
-		},
-	}
-}
-
-func (s *Storage) GetRefUsers() *ReferenceUsers {
-	return &ReferenceUsers{
-		Reference: Reference{
-			Name: "users",
-			Db:   s.Db,
-		},
-	}
-}
-
-func (s *Storage) GetRefProducts() *ReferenceProducts {
-	return &ReferenceProducts{
-		Reference: Reference{
-			Name: "products",
-			Db:   s.Db,
-		},
-	}
-}
-
-func (s *Storage) GetRefBarcodes() *ReferenceBarcodes {
-	return &ReferenceBarcodes{
-		Reference: Reference{
-			Name:       "barcodes",
-			ParentName: "products",
-			Db:         s.Db,
-		},
-	}
-}
-
-func (s *Storage) GetDocReceipt() *DocumentReceipt {
-	return &DocumentReceipt{
-		Document: Document{
-			Name: "receipt_headers",
-			Db:   s.Db,
-		},
+func (s *Storage) GetDocument(docTableName docTables) *Document {
+	return &Document{
+		HeadersName: docTableName.Headers,
+		ItemsName:   docTableName.Items,
+		Db:          s.Db,
 	}
 }
 
@@ -147,25 +114,26 @@ func (s *Storage) FindCellById(cellId int64) (*Cell, error) {
 	return c, nil
 }
 
-// Put размещает в ячейку (cell) продукт (prod) в количестве (quantity)
+// PutRow размещает в ячейку (cell) продукт (prod) в количестве (quantity)
 // Возвращает количество которое было размещено (quantity)
-func (s *Storage) Put(cell *Cell, prod *Product, quantity int, tx *sql.Tx) (int, error) {
+func (s *Storage) PutRow(d IDocItem, row *DocRow, tx *sql.Tx) (int, error) {
 	var err error
-	sqlIns := fmt.Sprintf("INSERT INTO storage%d (zone_id, cell_id, prod_id, quantity) VALUES ($1, $2, $3, $4)", cell.WhsId)
+
+	sqlIns := fmt.Sprintf("INSERT INTO storage%d (doc_id, doc_type, zone_id, cell_id, row_id, prod_id, quantity) VALUES ($1, $2, $3, $4, $5, $6, $7)", row.CellDst.WhsId)
 	if tx != nil {
-		_, err = tx.Exec(sqlIns, cell.ZoneId, cell.Id, prod.Id, quantity)
+		_, err = tx.Exec(sqlIns, d.getId(), d.getType(), row.CellDst.ZoneId, row.CellDst.Id, row.RowId, row.Product.Id, row.Quantity)
 	} else {
-		_, err = s.Db.Exec(sqlIns, cell.ZoneId, cell.Id, prod.Id, quantity)
+		_, err = s.Db.Exec(sqlIns, d.getId(), d.getType(), row.CellDst.ZoneId, row.CellDst.Id, row.RowId, row.Product.Id, row.Quantity)
 	}
 	if err != nil {
 		return 0, err
 	}
-	return quantity, nil
+	return row.Quantity, nil
 }
 
-// Get отбирает из ячейки (cell) продукт (prod) в количестве (quantity)
+// GetRow отбирает из ячейки (cell) продукт (prod) в количестве (quantity)
 // Возвращает отобранное количество (quantity)
-func (s *Storage) Get(cell *Cell, prod *Product, quantity int, tx *sql.Tx) (int, error) {
+func (s *Storage) GetRow(d IDocItem, row *DocRow, tx *sql.Tx) (int, error) {
 	var err error
 
 	if tx == nil {
@@ -176,8 +144,8 @@ func (s *Storage) Get(cell *Cell, prod *Product, quantity int, tx *sql.Tx) (int,
 		}
 	}
 
-	sqlInsert := fmt.Sprintf("INSERT INTO storage%d (zone_id, cell_id, prod_id, quantity) VALUES ($1, $2, $3, $4)", cell.WhsId)
-	_, err = tx.Exec(sqlInsert, cell.ZoneId, cell.Id, prod.Id, -1*quantity)
+	sqlInsert := fmt.Sprintf("INSERT INTO storage%d (doc_id, doc_type, zone_id, cell_id, row_id, prod_id, quantity) VALUES ($1, $2, $3, $4)", row.CellSrc.WhsId)
+	_, err = tx.Exec(sqlInsert, d.getId(), d.getType(), row.CellSrc.ZoneId, row.CellSrc.Id, row.RowId, row.Product.Id, -1*row.Quantity)
 	if err != nil {
 		return 0, err
 	}
@@ -185,8 +153,8 @@ func (s *Storage) Get(cell *Cell, prod *Product, quantity int, tx *sql.Tx) (int,
 	sqlQuant := fmt.Sprintf("SELECT SUM(quantity) AS quantity "+
 		"FROM storage%d WHERE zone_id = $1 AND cell_id = $2 AND prod_id = $3 "+
 		"GROUP BY zone_id, cell_id, prod_id "+
-		"HAVING SUM(quantity) < 0", cell.WhsId)
-	rows, err := tx.Query(sqlQuant, cell.ZoneId, cell.Id, prod.Id)
+		"HAVING SUM(quantity) < 0", row.CellSrc.WhsId)
+	rows, err := tx.Query(sqlQuant, row.CellSrc.ZoneId, row.CellSrc.Id, row.Product.Id)
 	if err != nil {
 		// ошибка контроля
 		return 0, err
@@ -205,7 +173,7 @@ func (s *Storage) Get(cell *Cell, prod *Product, quantity int, tx *sql.Tx) (int,
 	if err != nil {
 		return 0, err
 	}
-	return quantity, nil
+	return row.Quantity, nil
 }
 
 // Quantity возвращает количество продуктов на св ячейке
@@ -241,14 +209,14 @@ func (s *Storage) Quantity(whsId int, cell Cell, tx *sql.Tx) (map[int]int, error
 	return res, nil
 }
 
-func (s *Storage) Move(cellSrc, cellDst *Cell, prod *Product, quantity int) error {
+func (s *Storage) MoveRow(d IDocItem, row *DocRow, tx *sql.Tx) error {
 	// TODO: cellSrc.WhsId <> cellDst.WhsId - временной разрыв или виртуальное перемещение
 
-	_, err := s.Get(cellSrc, prod, quantity, nil)
+	_, err := s.GetRow(d, row, tx)
 	if err != nil {
 		return err
 	}
-	_, err = s.Put(cellDst, prod, quantity, nil)
+	_, err = s.PutRow(d, row, tx)
 	if err == nil {
 		return err
 	}

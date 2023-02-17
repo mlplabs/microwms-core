@@ -1,4 +1,4 @@
-package models
+package whs
 
 // Типы зон
 const (
@@ -20,13 +20,9 @@ type Zone struct {
 	RefItem
 }
 
-type ReferenceZones struct {
-	Reference
-}
-
-// GetItems возвращает список зон
-func (ref *ReferenceZones) GetItems(offset int, limit int, parentId int64) ([]Zone, int, error) {
-	items, count, err := ref.getItems(offset, limit, parentId)
+// GetZonesItems returns a list of zones
+func (s *Storage) GetZonesItems(offset int, limit int, parentId int64) ([]Zone, int, error) {
+	items, count, err := s.GetReference(tableRefZones).getItems(offset, limit, parentId)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -39,19 +35,18 @@ func (ref *ReferenceZones) GetItems(offset int, limit int, parentId int64) ([]Zo
 	return retVal, count, nil
 }
 
-// FindById выполняет поиск зоны по внутреннему идентификатору
-func (ref *ReferenceZones) FindById(zoneId int64) (*Zone, error) {
-	item, err := ref.findItemById(zoneId)
+// FindZoneById searches for a zone by internal id
+func (s *Storage) FindZoneById(zoneId int64) (*Zone, error) {
+	item, err := s.GetReference(tableRefZones).findItemById(zoneId)
 	u := new(Zone)
 	u.RefItem = *item
 	return u, err
 }
 
-// FindByParentId возвращает список зон для выбранного склада
-func (ref *ReferenceZones) FindByParentId(whsId int64) ([]Zone, error) {
+// FindZonesByParentId returns a list of zones for the selected warehouse (by parent)
+func (s *Storage) FindZonesByParentId(whsId int64) ([]Zone, error) {
 	sqlZones := "SELECT id, name FROM zones WHERE parent_id = $1"
-
-	rows, err := ref.Db.Query(sqlZones, whsId)
+	rows, err := s.Db.Query(sqlZones, whsId)
 	if err != nil {
 		return nil, err
 	}
