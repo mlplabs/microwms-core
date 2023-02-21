@@ -1,13 +1,48 @@
 package whs
 
-//
-//import (
-//	"database/sql"
-//	"errors"
-//	"github.com/DATA-DOG/go-sqlmock"
-//	"testing"
-//)
-//
+import (
+	"github.com/DATA-DOG/go-sqlmock"
+	"testing"
+)
+
+func TestStorage_GetProductsItems(t *testing.T) {
+	db, mock := NewMock()
+	defer db.Close()
+
+	st := Storage{Db: db}
+
+	rowsProd := sqlmock.NewRows([]string{"p.id", "p.name", "p.item_number", "p.manufacturer_id", "p.manufacturer_name"})
+	rowsProd.AddRow(1, "test product 1", "", 1, "mnf 1")
+	rowsProd.AddRow(2, "test product 2", "", 2, "mnf 2")
+	rowsProd.AddRow(3, "test product 3", "", 4, "mnf 4")
+
+	rowsBc := sqlmock.NewRows([]string{"id", "name", "barcode_type"})
+
+	rowsCount := sqlmock.NewRows([]string{"count"})
+	rowsCount.AddRow(3)
+
+	mock.ExpectQuery("^SELECT (.+) FROM products").
+		WillReturnRows(rowsProd)
+
+	mock.ExpectQuery("^SELECT (.+) FROM barcodes WHERE parent_id*").WillReturnRows(rowsBc)
+	mock.ExpectQuery("^SELECT (.+) FROM barcodes WHERE parent_id*").WillReturnRows(rowsBc)
+	mock.ExpectQuery("^SELECT (.+) FROM barcodes WHERE parent_id*").WillReturnRows(rowsBc)
+
+	mock.ExpectQuery("^SELECT COUNT(.+) FROM (.+) sub").WillReturnRows(rowsCount)
+
+	prods, _, err := st.GetProductsItems(0, 10, 0)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(prods) != 3 {
+		t.Error(err)
+	}
+}
+
+func TestStorage_FindProductById(t *testing.T) {
+
+}
+
 //func TestStorage_FindProductById(t *testing.T) {
 //	db, mock := NewMock()
 //	defer db.Close()

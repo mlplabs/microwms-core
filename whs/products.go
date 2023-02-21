@@ -33,9 +33,11 @@ func (s *Storage) GetProductsItems(offset int, limit int, parentId int64) ([]Pro
 	}
 	defer rows.Close()
 
-	prods := make([]Product, count, 10)
+	prods := make([]Product, count)
 	for rows.Next() {
 		p := new(Product)
+		p.Manufacturer = new(Manufacturer)
+
 		err = rows.Scan(&p.Id, &p.Name, &p.ItemNumber, &p.Manufacturer.Id, &p.Manufacturer.Name)
 
 		pBarcodes, err := s.GetProductsBarcodes(p.Id) // пока так
@@ -64,6 +66,7 @@ func (s *Storage) FindProductById(productId int64) (*Product, error) {
 		"WHERE p.id = $1"
 	row := s.Db.QueryRow(sqlCell, productId)
 	p := new(Product)
+	p.Manufacturer = new(Manufacturer)
 	err := row.Scan(&p.Id, &p.Name, &p.ItemNumber, &p.Manufacturer.Id, &p.Manufacturer.Name)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
@@ -88,6 +91,7 @@ func (s *Storage) FindProductsByName(valName string) ([]Product, error) {
 	defer rows.Close()
 	for rows.Next() {
 		item := Product{}
+		item.Manufacturer = new(Manufacturer)
 		err = rows.Scan(&item.Id, &item.Name, &item.Manufacturer.Id)
 		if err != nil {
 			return nil, &core.WrapError{Err: err, Code: core.SystemError}
@@ -159,7 +163,38 @@ func (s *Storage) GetProductsBarcodes(productId int64) ([]Barcode, error) {
 }
 
 func (s *Storage) GetProductsSuggestion(text string, limit int) ([]Suggestion, error) {
-	return s.GetReference(tableRefProducts).getSuggestion(text, limit)
+	retVal := make([]Suggestion, 0)
+
+	if strings.TrimSpace(text) == "" {
+		return retVal, &core.WrapError{Err: fmt.Errorf("invalid search text "), Code: core.SystemError}
+	}
+	if limit == 0 {
+		limit = 10
+	}
+
+	sqlSel := fmt.Sprintf("SELECT p.id, p.name, m.name as mnf_name FROM %s p "+
+		"LEFT JOIN %s m ON p.manufacturer_id = m.id "+
+		"WHERE p.name ILIKE $1 LIMIT $2", tableRefProducts, tableRefManufacturers)
+	rows, err := s.Db.Query(sqlSel, text+"%", limit)
+	if err != nil {
+		return retVal, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		item := Suggestion{}
+		mnfName := ""
+		err := rows.Scan(&item.Id, &item.Val, &mnfName)
+		if err != nil {
+			return retVal, &core.WrapError{Err: err, Code: core.SystemError}
+		}
+		item.Title = item.Val
+		if mnfName != "" {
+			item.Title += ", " + mnfName
+		}
+		retVal = append(retVal, item)
+	}
+	return retVal, err
 }
 
 // CreateProduct creates a new product
@@ -283,8 +318,11 @@ func (s *Storage) UpdateProduct(p *Product) (int64, error) {
 		}
 	}
 
-	sqlInsProd := fmt.Sprintf("UPDATE %s SET name=$2,manufacturer_id=$3,sz_length=$4,sz_wight=$5,sz_height=$6,sz_weight=$7,sz_volume=$8, sz_uf_volume=$9, item_number=$10 WHERE id=$1", tableRefProducts)
+	if p.Size == nil {
+		p.Size = new(SpecificSize)
+	}
 
+	sqlInsProd := fmt.Sprintf("UPDATE %s SET name=$2,manufacturer_id=$3,sz_length=$4,sz_wight=$5,sz_height=$6,sz_weight=$7,sz_volume=$8, sz_uf_volume=$9, item_number=$10 WHERE id=$1", tableRefProducts)
 	res, err := tx.Exec(sqlInsProd, p.Id, p.Name, mId, p.Size.Length, p.Size.Width, p.Size.Height, p.Size.Weight, p.Size.Volume, p.Size.UsefulVolume, p.ItemNumber)
 	if err != nil {
 		tx.Rollback()

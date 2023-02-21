@@ -14,8 +14,9 @@ type Reference struct {
 }
 
 type Suggestion struct {
-	Id  int64  `json:"id"`
-	Val string `json:"val"`
+	Id    int64  `json:"id"`
+	Val   string `json:"val"`
+	Title string `json:"title"`
 }
 
 func (r *Reference) getItems(offset int, limit int, parentId int64) ([]RefItem, int, error) {
@@ -157,6 +158,7 @@ func (r *Reference) getSuggestion(text string, limit int) ([]Suggestion, error) 
 		if err != nil {
 			return retVal, &core.WrapError{Err: err, Code: core.SystemError}
 		}
+		item.Title = item.Val
 		retVal = append(retVal, item)
 	}
 	return retVal, err
@@ -186,8 +188,4 @@ func (r *RefItem) SetId(id int64) {
 }
 func (r *RefItem) GetParentId() int64 {
 	return r.ParentId
-}
-
-type IRefSuggesting interface {
-	GetSuggestion(string, int) ([]string, error)
 }
