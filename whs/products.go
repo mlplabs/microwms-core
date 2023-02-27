@@ -9,10 +9,10 @@ import (
 
 // Product item, storage unit
 type Product struct {
-	ItemNumber   string        `json:"item_number"`
-	Barcodes     []Barcode     `json:"barcodes"`
-	Manufacturer *Manufacturer `json:"manufacturer"`
-	Size         *SpecificSize `json:"size"`
+	ItemNumber   string       `json:"item_number"`
+	Barcodes     []Barcode    `json:"barcodes"`
+	Manufacturer Manufacturer `json:"manufacturer"`
+	Size         SpecificSize `json:"size"`
 	RefItem
 }
 
@@ -36,8 +36,6 @@ func (s *Storage) GetProductsItems(offset int, limit int, parentId int64) ([]Pro
 	prods := make([]Product, count)
 	for rows.Next() {
 		p := new(Product)
-		p.Manufacturer = new(Manufacturer)
-
 		err = rows.Scan(&p.Id, &p.Name, &p.ItemNumber, &p.Manufacturer.Id, &p.Manufacturer.Name)
 
 		pBarcodes, err := s.GetProductsBarcodes(p.Id) // пока так
@@ -66,7 +64,6 @@ func (s *Storage) FindProductById(productId int64) (*Product, error) {
 		"WHERE p.id = $1"
 	row := s.Db.QueryRow(sqlCell, productId)
 	p := new(Product)
-	p.Manufacturer = new(Manufacturer)
 	err := row.Scan(&p.Id, &p.Name, &p.ItemNumber, &p.Manufacturer.Id, &p.Manufacturer.Name)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
@@ -91,7 +88,6 @@ func (s *Storage) FindProductsByName(valName string) ([]Product, error) {
 	defer rows.Close()
 	for rows.Next() {
 		item := Product{}
-		item.Manufacturer = new(Manufacturer)
 		err = rows.Scan(&item.Id, &item.Name, &item.Manufacturer.Id)
 		if err != nil {
 			return nil, &core.WrapError{Err: err, Code: core.SystemError}
@@ -204,7 +200,7 @@ func (s *Storage) CreateProduct(p *Product) (int64, error) {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
-	pId, _, err := s.CreateProductInteractive(tx, p.Name, p.Manufacturer.Name, p.ItemNumber, p.Size, p.Barcodes)
+	pId, _, err := s.CreateProductInteractive(tx, p.Name, p.Manufacturer.Name, p.ItemNumber, &p.Size, p.Barcodes)
 
 	err = tx.Commit()
 	if err != nil {
@@ -316,10 +312,6 @@ func (s *Storage) UpdateProduct(p *Product) (int64, error) {
 			tx.Rollback()
 			return 0, &core.WrapError{Err: err, Code: core.SystemError}
 		}
-	}
-
-	if p.Size == nil {
-		p.Size = new(SpecificSize)
 	}
 
 	sqlInsProd := fmt.Sprintf("UPDATE %s SET name=$2,manufacturer_id=$3,sz_length=$4,sz_wight=$5,sz_height=$6,sz_weight=$7,sz_volume=$8, sz_uf_volume=$9, item_number=$10 WHERE id=$1", tableRefProducts)

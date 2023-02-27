@@ -236,12 +236,13 @@ func (d *Document) getItemById(id int64) (*DocItem, error) {
 	di.Number = di.GetNumber()
 	di.Date = GetDate(dateDoc)
 
-	sqlI := fmt.Sprintf("SELECT ri.row_id, ri.product_id, p.name, s.quantity, c.id AS cell_id, c.name AS cell_name "+
+	sqlI := fmt.Sprintf("SELECT ri.row_id, ri.product_id, p.name, p.manufacturer_id, COALESCE(m.name, '') AS manufacturer_name, s.quantity, c.id AS cell_id, COALESCE(c.name, '') AS cell_name "+
 		"FROM %s ri "+
 		"LEFT JOIN %s p ON ri.product_id = p.id "+
+		"LEFT JOIN %s m ON p.manufacturer_id = m.id "+
 		"LEFT JOIN %s s ON s.doc_id = $1 AND s.row_id = ri.row_id "+
 		"LEFT JOIN %s c ON s.cell_id = c.id "+
-		"WHERE ri.parent_id = $1", d.ItemsName, tableRefProducts, "storage1", tableRefCells)
+		"WHERE ri.parent_id = $1", d.ItemsName, tableRefProducts, tableRefManufacturers, "storage1", tableRefCells)
 	rows, err := d.Db.Query(sqlI, id)
 	if err != nil {
 		return nil, &core.WrapError{Err: err, Code: core.SystemError}
@@ -251,7 +252,7 @@ func (d *Document) getItemById(id int64) (*DocItem, error) {
 		r := DocRow{}
 		cellId := 0
 		cellName := ""
-		err = rows.Scan(&r.RowId, &r.Product.Id, &r.Product.Name, &r.Quantity, &cellId, &cellName)
+		err = rows.Scan(&r.RowId, &r.Product.Id, &r.Product.Name, &r.Product.Manufacturer.Id, &r.Product.Manufacturer.Name, &r.Quantity, &cellId, &cellName)
 		if di.getType() == DocumentTypeReceipt {
 			r.CellDst.Id = int64(cellId)
 			r.CellDst.Name = cellName

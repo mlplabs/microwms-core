@@ -16,28 +16,6 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
---
--- Name: wmsdb; Type: DATABASE; Schema: -; Owner: devuser
---
-
-CREATE DATABASE wmsdb WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE = 'en_US.utf8';
-
-
-ALTER DATABASE wmsdb OWNER TO devuser;
-
-\connect wmsdb
-
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
-SET check_function_bodies = false;
-SET xmloption = content;
-SET client_min_messages = warning;
-SET row_security = off;
-
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -524,6 +502,8 @@ COPY public.manufacturers (id, name) FROM stdin;
 66	Новый производитель тестового товара
 69	какой-то производитель
 70	Новый производитель2
+71	DEKO2
+72	PROFILUXX
 13	Shenzhen Xunlong Software
 14	OUIO
 15	SanDisk
@@ -543,8 +523,10 @@ COPY public.products (id, name, manufacturer_id, sz_length, sz_wight, sz_height,
 44	Набор картриджей Аквафор К5-К4-К8 Универсал Н для жесткой и железистой воды	63	0	0	0	0.000	0.000	0.000	
 52	Покрытие декоративное Profilux 7 кг цвет белый	64	0	0	0	0.000	0.000	0.000	
 14	Осциллограф FNIRSI-1013D	16	0	0	0	0.000	0.000	0.000	1013D
-62	Тестовый товар	66	0	0	0	0.000	0.000	0.000	
-61	Тестовый товар	69	0	0	0	0.000	0.000	0.000	
+63	Набор отверток DKMT65 065-0223	71	0	0	0	0.000	0.000	0.000	
+61	Тестовый товар	69	0	0	0	0.000	0.000	0.000	2342567
+64	Тестовый товар2	72	0	0	0	0.000	0.000	0.000	987654321
+65	Тестовый товар2	64	0	0	0	0.000	0.000	0.000	
 9	Набор отверток DKMT65 065-0223	12	0	0	0	0.000	0.000	0.000	
 19	Редуктор давления РДСГ 1-1.2	19	0	0	0	0.000	0.000	0.000	
 2	Патрон керамический Uniel GU4/GU5.3	20	0	0	0	0.000	0.000	0.000	
@@ -560,6 +542,10 @@ COPY public.products (id, name, manufacturer_id, sz_length, sz_wight, sz_height,
 --
 
 COPY public.receipt_headers (id, number, date, doc_type) FROM stdin;
+23		2023-02-20 00:00:00+00	2
+24		2023-02-20 00:00:00+00	2
+25		2023-02-21 00:00:00+00	2
+26		2023-02-21 00:00:00+00	2
 \.
 
 
@@ -568,6 +554,10 @@ COPY public.receipt_headers (id, number, date, doc_type) FROM stdin;
 --
 
 COPY public.receipt_items (parent_id, row_id, product_id, quantity) FROM stdin;
+23	23.1	63	7
+24	24.1	63	3
+25	25.1	65	3
+26	26.1	61	5
 \.
 
 
@@ -595,6 +585,10 @@ COPY public.storage1 (zone_id, cell_id, prod_id, quantity, doc_id, doc_type, row
 1	2	57	6	20	1	20.1
 1	2	58	10	21	1	21.1
 1	2	59	15	22	1	22.1
+1	2	63	7	23	1	23.1
+1	2	63	3	24	1	24.1
+1	2	65	3	25	1	25.1
+1	2	61	5	26	1	26.1
 \.
 
 
@@ -671,21 +665,21 @@ SELECT pg_catalog.setval('public.cells_id_seq', 2, true);
 -- Name: manufacturers_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
 --
 
-SELECT pg_catalog.setval('public.manufacturers_id_seq', 70, true);
+SELECT pg_catalog.setval('public.manufacturers_id_seq', 72, true);
 
 
 --
 -- Name: products_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
 --
 
-SELECT pg_catalog.setval('public.products_id_seq', 62, true);
+SELECT pg_catalog.setval('public.products_id_seq', 65, true);
 
 
 --
 -- Name: receipt_docs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
 --
 
-SELECT pg_catalog.setval('public.receipt_docs_id_seq', 22, true);
+SELECT pg_catalog.setval('public.receipt_docs_id_seq', 35, true);
 
 
 --
