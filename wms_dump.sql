@@ -21,7 +21,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: barcodes; Type: TABLE; Schema: public; Owner: devuser
+-- Name: barcodes; Type: TABLE; Schema: public; Owner: wmsuser
 --
 
 CREATE TABLE public.barcodes (
@@ -32,10 +32,10 @@ CREATE TABLE public.barcodes (
 );
 
 
-ALTER TABLE public.barcodes OWNER TO devuser;
+ALTER TABLE public.barcodes OWNER TO wmsuser;
 
 --
--- Name: barcodes_id_seq; Type: SEQUENCE; Schema: public; Owner: devuser
+-- Name: barcodes_id_seq; Type: SEQUENCE; Schema: public; Owner: wmsuser
 --
 
 CREATE SEQUENCE public.barcodes_id_seq
@@ -47,17 +47,17 @@ CREATE SEQUENCE public.barcodes_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.barcodes_id_seq OWNER TO devuser;
+ALTER TABLE public.barcodes_id_seq OWNER TO wmsuser;
 
 --
--- Name: barcodes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: devuser
+-- Name: barcodes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wmsuser
 --
 
 ALTER SEQUENCE public.barcodes_id_seq OWNED BY public.barcodes.id;
 
 
 --
--- Name: cells; Type: TABLE; Schema: public; Owner: devuser
+-- Name: cells; Type: TABLE; Schema: public; Owner: wmsuser
 --
 
 CREATE TABLE public.cells (
@@ -82,10 +82,10 @@ CREATE TABLE public.cells (
 );
 
 
-ALTER TABLE public.cells OWNER TO devuser;
+ALTER TABLE public.cells OWNER TO wmsuser;
 
 --
--- Name: cells_id_seq; Type: SEQUENCE; Schema: public; Owner: devuser
+-- Name: cells_id_seq; Type: SEQUENCE; Schema: public; Owner: wmsuser
 --
 
 CREATE SEQUENCE public.cells_id_seq
@@ -97,17 +97,17 @@ CREATE SEQUENCE public.cells_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.cells_id_seq OWNER TO devuser;
+ALTER TABLE public.cells_id_seq OWNER TO wmsuser;
 
 --
--- Name: cells_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: devuser
+-- Name: cells_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wmsuser
 --
 
 ALTER SEQUENCE public.cells_id_seq OWNED BY public.cells.id;
 
 
 --
--- Name: manufacturers; Type: TABLE; Schema: public; Owner: devuser
+-- Name: manufacturers; Type: TABLE; Schema: public; Owner: wmsuser
 --
 
 CREATE TABLE public.manufacturers (
@@ -116,10 +116,10 @@ CREATE TABLE public.manufacturers (
 );
 
 
-ALTER TABLE public.manufacturers OWNER TO devuser;
+ALTER TABLE public.manufacturers OWNER TO wmsuser;
 
 --
--- Name: manufacturers_id_seq; Type: SEQUENCE; Schema: public; Owner: devuser
+-- Name: manufacturers_id_seq; Type: SEQUENCE; Schema: public; Owner: wmsuser
 --
 
 CREATE SEQUENCE public.manufacturers_id_seq
@@ -131,17 +131,17 @@ CREATE SEQUENCE public.manufacturers_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.manufacturers_id_seq OWNER TO devuser;
+ALTER TABLE public.manufacturers_id_seq OWNER TO wmsuser;
 
 --
--- Name: manufacturers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: devuser
+-- Name: manufacturers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wmsuser
 --
 
 ALTER SEQUENCE public.manufacturers_id_seq OWNED BY public.manufacturers.id;
 
 
 --
--- Name: products; Type: TABLE; Schema: public; Owner: devuser
+-- Name: products; Type: TABLE; Schema: public; Owner: wmsuser
 --
 
 CREATE TABLE public.products (
@@ -158,10 +158,10 @@ CREATE TABLE public.products (
 );
 
 
-ALTER TABLE public.products OWNER TO devuser;
+ALTER TABLE public.products OWNER TO wmsuser;
 
 --
--- Name: products_id_seq; Type: SEQUENCE; Schema: public; Owner: devuser
+-- Name: products_id_seq; Type: SEQUENCE; Schema: public; Owner: wmsuser
 --
 
 CREATE SEQUENCE public.products_id_seq
@@ -173,17 +173,17 @@ CREATE SEQUENCE public.products_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.products_id_seq OWNER TO devuser;
+ALTER TABLE public.products_id_seq OWNER TO wmsuser;
 
 --
--- Name: products_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: devuser
+-- Name: products_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wmsuser
 --
 
 ALTER SEQUENCE public.products_id_seq OWNED BY public.products.id;
 
 
 --
--- Name: receipt_headers; Type: TABLE; Schema: public; Owner: devuser
+-- Name: receipt_headers; Type: TABLE; Schema: public; Owner: wmsuser
 --
 
 CREATE TABLE public.receipt_headers (
@@ -194,10 +194,10 @@ CREATE TABLE public.receipt_headers (
 );
 
 
-ALTER TABLE public.receipt_headers OWNER TO devuser;
+ALTER TABLE public.receipt_headers OWNER TO wmsuser;
 
 --
--- Name: receipt_docs_id_seq; Type: SEQUENCE; Schema: public; Owner: devuser
+-- Name: receipt_docs_id_seq; Type: SEQUENCE; Schema: public; Owner: wmsuser
 --
 
 CREATE SEQUENCE public.receipt_docs_id_seq
@@ -209,17 +209,17 @@ CREATE SEQUENCE public.receipt_docs_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.receipt_docs_id_seq OWNER TO devuser;
+ALTER TABLE public.receipt_docs_id_seq OWNER TO wmsuser;
 
 --
--- Name: receipt_docs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: devuser
+-- Name: receipt_docs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wmsuser
 --
 
 ALTER SEQUENCE public.receipt_docs_id_seq OWNED BY public.receipt_headers.id;
 
 
 --
--- Name: receipt_items; Type: TABLE; Schema: public; Owner: devuser
+-- Name: receipt_items; Type: TABLE; Schema: public; Owner: wmsuser
 --
 
 CREATE TABLE public.receipt_items (
@@ -230,10 +230,10 @@ CREATE TABLE public.receipt_items (
 );
 
 
-ALTER TABLE public.receipt_items OWNER TO devuser;
+ALTER TABLE public.receipt_items OWNER TO wmsuser;
 
 --
--- Name: storage1; Type: TABLE; Schema: public; Owner: devuser
+-- Name: storage1; Type: TABLE; Schema: public; Owner: wmsuser
 --
 
 CREATE TABLE public.storage1 (
@@ -247,27 +247,10 @@ CREATE TABLE public.storage1 (
 );
 
 
-ALTER TABLE public.storage1 OWNER TO devuser;
+ALTER TABLE public.storage1 OWNER TO wmsuser;
 
 --
--- Name: storage10; Type: TABLE; Schema: public; Owner: devuser
---
-
-CREATE TABLE public.storage10 (
-    doc_id integer DEFAULT 0 NOT NULL,
-    doc_type smallint DEFAULT 0 NOT NULL,
-    row_id character varying(36) DEFAULT ''::character varying NOT NULL,
-    zone_id integer,
-    cell_id integer,
-    prod_id integer,
-    quantity integer
-);
-
-
-ALTER TABLE public.storage10 OWNER TO devuser;
-
---
--- Name: user_printers; Type: TABLE; Schema: public; Owner: devuser
+-- Name: user_printers; Type: TABLE; Schema: public; Owner: wmsuser
 --
 
 CREATE TABLE public.user_printers (
@@ -278,10 +261,10 @@ CREATE TABLE public.user_printers (
 );
 
 
-ALTER TABLE public.user_printers OWNER TO devuser;
+ALTER TABLE public.user_printers OWNER TO wmsuser;
 
 --
--- Name: users; Type: TABLE; Schema: public; Owner: devuser
+-- Name: users; Type: TABLE; Schema: public; Owner: wmsuser
 --
 
 CREATE TABLE public.users (
@@ -290,10 +273,10 @@ CREATE TABLE public.users (
 );
 
 
-ALTER TABLE public.users OWNER TO devuser;
+ALTER TABLE public.users OWNER TO wmsuser;
 
 --
--- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: devuser
+-- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: wmsuser
 --
 
 CREATE SEQUENCE public.users_id_seq
@@ -305,17 +288,17 @@ CREATE SEQUENCE public.users_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.users_id_seq OWNER TO devuser;
+ALTER TABLE public.users_id_seq OWNER TO wmsuser;
 
 --
--- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: devuser
+-- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wmsuser
 --
 
 ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
 
 
 --
--- Name: whs; Type: TABLE; Schema: public; Owner: devuser
+-- Name: whs; Type: TABLE; Schema: public; Owner: wmsuser
 --
 
 CREATE TABLE public.whs (
@@ -325,10 +308,10 @@ CREATE TABLE public.whs (
 );
 
 
-ALTER TABLE public.whs OWNER TO devuser;
+ALTER TABLE public.whs OWNER TO wmsuser;
 
 --
--- Name: whs_id_seq; Type: SEQUENCE; Schema: public; Owner: devuser
+-- Name: whs_id_seq; Type: SEQUENCE; Schema: public; Owner: wmsuser
 --
 
 CREATE SEQUENCE public.whs_id_seq
@@ -340,17 +323,17 @@ CREATE SEQUENCE public.whs_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.whs_id_seq OWNER TO devuser;
+ALTER TABLE public.whs_id_seq OWNER TO wmsuser;
 
 --
--- Name: whs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: devuser
+-- Name: whs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wmsuser
 --
 
 ALTER SEQUENCE public.whs_id_seq OWNED BY public.whs.id;
 
 
 --
--- Name: zones; Type: TABLE; Schema: public; Owner: devuser
+-- Name: zones; Type: TABLE; Schema: public; Owner: wmsuser
 --
 
 CREATE TABLE public.zones (
@@ -361,10 +344,10 @@ CREATE TABLE public.zones (
 );
 
 
-ALTER TABLE public.zones OWNER TO devuser;
+ALTER TABLE public.zones OWNER TO wmsuser;
 
 --
--- Name: zones_id_seq; Type: SEQUENCE; Schema: public; Owner: devuser
+-- Name: zones_id_seq; Type: SEQUENCE; Schema: public; Owner: wmsuser
 --
 
 CREATE SEQUENCE public.zones_id_seq
@@ -376,232 +359,129 @@ CREATE SEQUENCE public.zones_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.zones_id_seq OWNER TO devuser;
+ALTER TABLE public.zones_id_seq OWNER TO wmsuser;
 
 --
--- Name: zones_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: devuser
+-- Name: zones_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: wmsuser
 --
 
 ALTER SEQUENCE public.zones_id_seq OWNED BY public.zones.id;
 
 
 --
--- Name: barcodes id; Type: DEFAULT; Schema: public; Owner: devuser
+-- Name: barcodes id; Type: DEFAULT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.barcodes ALTER COLUMN id SET DEFAULT nextval('public.barcodes_id_seq'::regclass);
 
 
 --
--- Name: cells id; Type: DEFAULT; Schema: public; Owner: devuser
+-- Name: cells id; Type: DEFAULT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.cells ALTER COLUMN id SET DEFAULT nextval('public.cells_id_seq'::regclass);
 
 
 --
--- Name: manufacturers id; Type: DEFAULT; Schema: public; Owner: devuser
+-- Name: manufacturers id; Type: DEFAULT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.manufacturers ALTER COLUMN id SET DEFAULT nextval('public.manufacturers_id_seq'::regclass);
 
 
 --
--- Name: products id; Type: DEFAULT; Schema: public; Owner: devuser
+-- Name: products id; Type: DEFAULT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.products ALTER COLUMN id SET DEFAULT nextval('public.products_id_seq'::regclass);
 
 
 --
--- Name: receipt_headers id; Type: DEFAULT; Schema: public; Owner: devuser
+-- Name: receipt_headers id; Type: DEFAULT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.receipt_headers ALTER COLUMN id SET DEFAULT nextval('public.receipt_docs_id_seq'::regclass);
 
 
 --
--- Name: users id; Type: DEFAULT; Schema: public; Owner: devuser
+-- Name: users id; Type: DEFAULT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_id_seq'::regclass);
 
 
 --
--- Name: whs id; Type: DEFAULT; Schema: public; Owner: devuser
+-- Name: whs id; Type: DEFAULT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.whs ALTER COLUMN id SET DEFAULT nextval('public.whs_id_seq'::regclass);
 
 
 --
--- Name: zones id; Type: DEFAULT; Schema: public; Owner: devuser
+-- Name: zones id; Type: DEFAULT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.zones ALTER COLUMN id SET DEFAULT nextval('public.zones_id_seq'::regclass);
 
 
 --
--- Data for Name: barcodes; Type: TABLE DATA; Schema: public; Owner: devuser
+-- Data for Name: barcodes; Type: TABLE DATA; Schema: public; Owner: wmsuser
 --
 
 COPY public.barcodes (parent_id, name, barcode_type, id) FROM stdin;
-18	110 123456sw78901	3	1
-18	110 0045f36782901	2	2
-11	123456sw78901	3	3
-11	0045f36782901	2	4
-9	12345678901	3	5
-9	0045678901	2	6
-17	110 123456sw78901	3	15
-17	110 0045f36782901	2	16
-10	123456s78901	3	17
-10	0045f3678901	2	18
-2	1234567890	3	19
-20	123456sw78901	3	20
-20	0045f36782901	2	21
-13	123456sw78901	3	26
-13	0045f36782901	2	27
-15	12345611278901	3	28
-15	0045f36112782901	2	29
-22	sdfgsdfgew5435645	0	34
-16	110 123456sw78901	3	35
-16	110 0045f36782901	2	36
-16	110 004	0	37
-23	345234523452345	0	39
-23	34563456	0	40
-25	2543452345	0	41
-27	52345	0	49
-27	3425345234	0	50
-41	345234523452345	0	51
-43	34563456345654	0	52
-60		0	53
-14	123456sw78901	3	54
-14	0045f36782901	2	55
-14	45235423452345	0	56
 \.
 
 
 --
--- Data for Name: cells; Type: TABLE DATA; Schema: public; Owner: devuser
+-- Data for Name: cells; Type: TABLE DATA; Schema: public; Owner: wmsuser
 --
 
 COPY public.cells (id, name, whs_id, zone_id, passage_id, rack_id, floor, sz_length, sz_width, sz_height, sz_volume, sz_uf_volume, sz_weight, is_size_free, is_weight_free, not_allowed_in, not_allowed_out, is_service) FROM stdin;
-1	test 1	1	1	2	0	3	0	0	0	0.000	0.000	0.000	f	f	f	f	f
-2	1-1-1-0-1	99	1	1	0	1	0	0	0	0.000	0.000	0.000	f	f	f	f	f
 \.
 
 
 --
--- Data for Name: manufacturers; Type: TABLE DATA; Schema: public; Owner: devuser
+-- Data for Name: manufacturers; Type: TABLE DATA; Schema: public; Owner: wmsuser
 --
 
 COPY public.manufacturers (id, name) FROM stdin;
-63	Аквафор
-64	PROFILUX
-65	
-66	Новый производитель тестового товара
-69	какой-то производитель
-70	Новый производитель2
-71	DEKO2
-72	PROFILUXX
-13	Shenzhen Xunlong Software
-14	OUIO
-15	SanDisk
-16	FNIRSI
-19	РОСТЕРМ
-20	UNIEL
-21	СВАРИС
-12	DEKO
 \.
 
 
 --
--- Data for Name: products; Type: TABLE DATA; Schema: public; Owner: devuser
+-- Data for Name: products; Type: TABLE DATA; Schema: public; Owner: wmsuser
 --
 
 COPY public.products (id, name, manufacturer_id, sz_length, sz_wight, sz_height, sz_weight, sz_volume, sz_uf_volume, item_number) FROM stdin;
-44	Набор картриджей Аквафор К5-К4-К8 Универсал Н для жесткой и железистой воды	63	0	0	0	0.000	0.000	0.000	
-52	Покрытие декоративное Profilux 7 кг цвет белый	64	0	0	0	0.000	0.000	0.000	
-14	Осциллограф FNIRSI-1013D	16	0	0	0	0.000	0.000	0.000	1013D
-63	Набор отверток DKMT65 065-0223	71	0	0	0	0.000	0.000	0.000	
-61	Тестовый товар	69	0	0	0	0.000	0.000	0.000	2342567
-64	Тестовый товар2	72	0	0	0	0.000	0.000	0.000	987654321
-65	Тестовый товар2	64	0	0	0	0.000	0.000	0.000	
-9	Набор отверток DKMT65 065-0223	12	0	0	0	0.000	0.000	0.000	
-19	Редуктор давления РДСГ 1-1.2	19	0	0	0	0.000	0.000	0.000	
-2	Патрон керамический Uniel GU4/GU5.3	20	0	0	0	0.000	0.000	0.000	
-20	Припой Сварис ПОС-61, D1 мм, катушка, с канифолью 50 г	21	0	0	0	0.000	0.000	0.000	
-13	Карта памяти Micro SD 64Gb class 10	15	0	0	0	0.000	0.000	0.000	64G10
-15	Карта памяти Micro SD 32Gb class 10	14	0	0	0	0.000	0.000	0.000	32G10
-16	Orange Pi Zero 512MB H3	13	0	0	0	0.000	0.000	0.000	
 \.
 
 
 --
--- Data for Name: receipt_headers; Type: TABLE DATA; Schema: public; Owner: devuser
+-- Data for Name: receipt_headers; Type: TABLE DATA; Schema: public; Owner: wmsuser
 --
 
 COPY public.receipt_headers (id, number, date, doc_type) FROM stdin;
-23		2023-02-20 00:00:00+00	2
-24		2023-02-20 00:00:00+00	2
-25		2023-02-21 00:00:00+00	2
-26		2023-02-21 00:00:00+00	2
 \.
 
 
 --
--- Data for Name: receipt_items; Type: TABLE DATA; Schema: public; Owner: devuser
+-- Data for Name: receipt_items; Type: TABLE DATA; Schema: public; Owner: wmsuser
 --
 
 COPY public.receipt_items (parent_id, row_id, product_id, quantity) FROM stdin;
-23	23.1	63	7
-24	24.1	63	3
-25	25.1	65	3
-26	26.1	61	5
 \.
 
 
 --
--- Data for Name: storage1; Type: TABLE DATA; Schema: public; Owner: devuser
+-- Data for Name: storage1; Type: TABLE DATA; Schema: public; Owner: wmsuser
 --
 
 COPY public.storage1 (zone_id, cell_id, prod_id, quantity, doc_id, doc_type, row_id) FROM stdin;
-0	2	32	100	0	0	
-0	2	34	40	0	0	
-0	2	34	40	0	0	
-0	2	34	40	0	0	
-0	2	34	40	0	0	
-0	2	34	40	0	0	
-0	2	32	100	0	0	
-0	2	32	-180	0	0	
-0	2	32	100	0	0	
-0	2	34	40	0	0	
-0	2	34	40	0	0	
-0	2	34	40	0	0	
-0	2	34	40	0	0	
-0	2	34	40	0	0	
-0	2	32	100	0	0	
-0	2	32	-180	0	0	
-1	2	57	6	20	1	20.1
-1	2	58	10	21	1	21.1
-1	2	59	15	22	1	22.1
-1	2	63	7	23	1	23.1
-1	2	63	3	24	1	24.1
-1	2	65	3	25	1	25.1
-1	2	61	5	26	1	26.1
 \.
 
 
 --
--- Data for Name: storage10; Type: TABLE DATA; Schema: public; Owner: devuser
---
-
-COPY public.storage10 (doc_id, doc_type, row_id, zone_id, cell_id, prod_id, quantity) FROM stdin;
-\.
-
-
---
--- Data for Name: user_printers; Type: TABLE DATA; Schema: public; Owner: devuser
+-- Data for Name: user_printers; Type: TABLE DATA; Schema: public; Owner: wmsuser
 --
 
 COPY public.user_printers (user_id, printer_name, printer_instance, printer_type) FROM stdin;
@@ -609,102 +489,91 @@ COPY public.user_printers (user_id, printer_name, printer_instance, printer_type
 
 
 --
--- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: devuser
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: wmsuser
 --
 
 COPY public.users (id, name) FROM stdin;
-6	Mike
-7	Михаил
-3	Админ
-10	Новый юзер
 \.
 
 
 --
--- Data for Name: whs; Type: TABLE DATA; Schema: public; Owner: devuser
+-- Data for Name: whs; Type: TABLE DATA; Schema: public; Owner: wmsuser
 --
 
 COPY public.whs (id, name, address) FROM stdin;
-1	Мой склад 1	
-10	Мой склад 2	
+1	Мой склад	
 \.
 
 
 --
--- Data for Name: zones; Type: TABLE DATA; Schema: public; Owner: devuser
+-- Data for Name: zones; Type: TABLE DATA; Schema: public; Owner: wmsuser
 --
 
 COPY public.zones (id, name, parent_id, zone_type) FROM stdin;
-1	Зона приемки	6	1
-2	Зона отгрузки	6	2
-3	Зона хранения	6	0
 4	Зона приемки	1	1
 5	Зона отгрузки	1	2
 6	Зона хранения	1	0
-13	Зона приемки	10	1
-14	Зона отгрузки	10	2
-15	Зона хранения	10	0
 \.
 
 
 --
--- Name: barcodes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
+-- Name: barcodes_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wmsuser
 --
 
-SELECT pg_catalog.setval('public.barcodes_id_seq', 56, true);
-
-
---
--- Name: cells_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
---
-
-SELECT pg_catalog.setval('public.cells_id_seq', 2, true);
+SELECT pg_catalog.setval('public.barcodes_id_seq', 1, true);
 
 
 --
--- Name: manufacturers_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
+-- Name: cells_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wmsuser
 --
 
-SELECT pg_catalog.setval('public.manufacturers_id_seq', 72, true);
-
-
---
--- Name: products_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
---
-
-SELECT pg_catalog.setval('public.products_id_seq', 65, true);
+SELECT pg_catalog.setval('public.cells_id_seq', 1, true);
 
 
 --
--- Name: receipt_docs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
+-- Name: manufacturers_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wmsuser
 --
 
-SELECT pg_catalog.setval('public.receipt_docs_id_seq', 35, true);
-
-
---
--- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
---
-
-SELECT pg_catalog.setval('public.users_id_seq', 10, true);
+SELECT pg_catalog.setval('public.manufacturers_id_seq', 1, true);
 
 
 --
--- Name: whs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
+-- Name: products_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wmsuser
+--
+
+SELECT pg_catalog.setval('public.products_id_seq', 1, true);
+
+
+--
+-- Name: receipt_docs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wmsuser
+--
+
+SELECT pg_catalog.setval('public.receipt_docs_id_seq', 1, true);
+
+
+--
+-- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wmsuser
+--
+
+SELECT pg_catalog.setval('public.users_id_seq', 1, true);
+
+
+--
+-- Name: whs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wmsuser
 --
 
 SELECT pg_catalog.setval('public.whs_id_seq', 10, true);
 
 
 --
--- Name: zones_id_seq; Type: SEQUENCE SET; Schema: public; Owner: devuser
+-- Name: zones_id_seq; Type: SEQUENCE SET; Schema: public; Owner: wmsuser
 --
 
 SELECT pg_catalog.setval('public.zones_id_seq', 15, true);
 
 
 --
--- Name: barcodes barcodes_pk; Type: CONSTRAINT; Schema: public; Owner: devuser
+-- Name: barcodes barcodes_pk; Type: CONSTRAINT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.barcodes
@@ -712,7 +581,7 @@ ALTER TABLE ONLY public.barcodes
 
 
 --
--- Name: cells cells_pk; Type: CONSTRAINT; Schema: public; Owner: devuser
+-- Name: cells cells_pk; Type: CONSTRAINT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.cells
@@ -720,7 +589,7 @@ ALTER TABLE ONLY public.cells
 
 
 --
--- Name: manufacturers manufacturers_pk; Type: CONSTRAINT; Schema: public; Owner: devuser
+-- Name: manufacturers manufacturers_pk; Type: CONSTRAINT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.manufacturers
@@ -728,7 +597,7 @@ ALTER TABLE ONLY public.manufacturers
 
 
 --
--- Name: products products_pk; Type: CONSTRAINT; Schema: public; Owner: devuser
+-- Name: products products_pk; Type: CONSTRAINT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.products
@@ -736,7 +605,7 @@ ALTER TABLE ONLY public.products
 
 
 --
--- Name: receipt_headers receipt_docs_pk; Type: CONSTRAINT; Schema: public; Owner: devuser
+-- Name: receipt_headers receipt_docs_pk; Type: CONSTRAINT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.receipt_headers
@@ -744,7 +613,7 @@ ALTER TABLE ONLY public.receipt_headers
 
 
 --
--- Name: receipt_items receipt_items_pk; Type: CONSTRAINT; Schema: public; Owner: devuser
+-- Name: receipt_items receipt_items_pk; Type: CONSTRAINT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.receipt_items
@@ -752,7 +621,7 @@ ALTER TABLE ONLY public.receipt_items
 
 
 --
--- Name: users users_pk; Type: CONSTRAINT; Schema: public; Owner: devuser
+-- Name: users users_pk; Type: CONSTRAINT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.users
@@ -760,7 +629,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: whs whs_pk; Type: CONSTRAINT; Schema: public; Owner: devuser
+-- Name: whs whs_pk; Type: CONSTRAINT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.whs
@@ -768,7 +637,7 @@ ALTER TABLE ONLY public.whs
 
 
 --
--- Name: zones zones_pk; Type: CONSTRAINT; Schema: public; Owner: devuser
+-- Name: zones zones_pk; Type: CONSTRAINT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.zones
@@ -776,35 +645,35 @@ ALTER TABLE ONLY public.zones
 
 
 --
--- Name: barcodes_product_id_barcode_barcode_type_uindex; Type: INDEX; Schema: public; Owner: devuser
+-- Name: barcodes_product_id_barcode_barcode_type_uindex; Type: INDEX; Schema: public; Owner: wmsuser
 --
 
 CREATE UNIQUE INDEX barcodes_product_id_barcode_barcode_type_uindex ON public.barcodes USING btree (parent_id, name, barcode_type);
 
 
 --
--- Name: cells_id_uindex; Type: INDEX; Schema: public; Owner: devuser
+-- Name: cells_id_uindex; Type: INDEX; Schema: public; Owner: wmsuser
 --
 
 CREATE UNIQUE INDEX cells_id_uindex ON public.cells USING btree (id);
 
 
 --
--- Name: cells_whs_id_zone_id_passage_id_floor_uindex; Type: INDEX; Schema: public; Owner: devuser
+-- Name: cells_whs_id_zone_id_passage_id_floor_uindex; Type: INDEX; Schema: public; Owner: wmsuser
 --
 
 CREATE UNIQUE INDEX cells_whs_id_zone_id_passage_id_floor_uindex ON public.cells USING btree (whs_id, zone_id, passage_id, floor);
 
 
 --
--- Name: receipt_items_row_id_uindex; Type: INDEX; Schema: public; Owner: devuser
+-- Name: receipt_items_row_id_uindex; Type: INDEX; Schema: public; Owner: wmsuser
 --
 
 CREATE UNIQUE INDEX receipt_items_row_id_uindex ON public.receipt_items USING btree (row_id);
 
 
 --
--- Name: products products_manufacturers_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: devuser
+-- Name: products products_manufacturers_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.products
@@ -812,7 +681,7 @@ ALTER TABLE ONLY public.products
 
 
 --
--- Name: receipt_items receipt_items_products_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: devuser
+-- Name: receipt_items receipt_items_products_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.receipt_items
@@ -820,15 +689,7 @@ ALTER TABLE ONLY public.receipt_items
 
 
 --
--- Name: storage10 storage10_cells_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: devuser
---
-
-ALTER TABLE ONLY public.storage10
-    ADD CONSTRAINT storage10_cells_id_fk FOREIGN KEY (cell_id) REFERENCES public.cells(id);
-
-
---
--- Name: storage1 storage1_cells_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: devuser
+-- Name: storage1 storage1_cells_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: wmsuser
 --
 
 ALTER TABLE ONLY public.storage1
