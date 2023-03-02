@@ -326,22 +326,23 @@ func (s *Storage) UpdateProduct(p *Product) (int64, error) {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
-	sqlDelBc := "DELETE FROM barcodes WHERE parent_id=$1"
-	res, err = tx.Exec(sqlDelBc, p.Id)
-	if err != nil {
-		tx.Rollback()
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-
 	if p.Barcodes != nil {
 		for _, bc := range p.Barcodes {
-			sqlBc := "INSERT INTO barcodes (parent_id, name, barcode_type) " +
-				"VALUES($1, $2, $3) " +
-				"ON CONFLICT (parent_id, name, barcode_type) DO UPDATE SET parent_id=$1, name=$2, barcode_type=$3"
-			_, err := tx.Exec(sqlBc, p.Id, bc.Name, bc.Type)
-			if err != nil {
-				tx.Rollback()
-				return 0, &core.WrapError{Err: err, Code: core.SystemError}
+			if bc.Id == 0 {
+				sqlBc := "INSERT INTO barcodes (parent_id, name, barcode_type) VALUES($1, $2, $3) RETURNING id"
+				err = tx.QueryRow(sqlBc, p.Id, bc.Name, bc.Type).Scan(&bc.Id)
+				if err != nil {
+					tx.Rollback()
+					return 0, &core.WrapError{Err: err, Code: core.SystemError}
+				}
+			} else {
+				sqlBc := "UPDATE barcodes SET parent_id = $1, name = $2, barcode_type = $3 WHERE id = $4"
+				_, err = tx.Exec(sqlBc, p.Id, bc.Name, bc.Type, bc.Id)
+				if err != nil {
+					tx.Rollback()
+					return 0, &core.WrapError{Err: err, Code: core.SystemError}
+				}
+
 			}
 		}
 	}
