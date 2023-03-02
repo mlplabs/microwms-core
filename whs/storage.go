@@ -26,7 +26,8 @@ type SpecificSize struct {
 
 // Типы штрих-кодов
 const (
-	BarcodeTypeEAN13 = iota
+	BarcodeTypeUnknown = iota
+	BarcodeTypeEAN13
 	BarcodeTypeEAN8
 	BarcodeTypeEAN14
 	BarcodeTypeCode128
