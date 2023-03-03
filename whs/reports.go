@@ -5,6 +5,7 @@ type RemainingProductRow struct {
 	Manufacturer RefItem `json:"manufacturer"`
 	Zone         RefItem `json:"zone"`
 	Cell         Cell    `json:"cell"`
+	Quantity     int     `json:"quantity"`
 }
 
 func (s *Storage) GetRemainingProducts() ([]RemainingProductRow, error) {
@@ -28,13 +29,13 @@ func (s *Storage) GetRemainingProducts() ([]RemainingProductRow, error) {
 	}
 	defer rows.Close()
 	for rows.Next() {
-		p := RefItem{}
-		m := RefItem{}
-		err = rows.Scan(&p.Id, &p.Name, &m.Id, &m.Name)
+		r := RemainingProductRow{}
+		qnt := 0
+		err = rows.Scan(&r.Product.Id, &r.Product.Name, &r.Manufacturer.Id, &r.Manufacturer.Name, &r.Zone.Id, &r.Zone.Name, &r.Cell.Id, &r.Cell.Name, &qnt)
 		if err != nil {
 			return retVal, err
 		}
-		retVal = append(retVal)
+		retVal = append(retVal, r)
 	}
 
 	return retVal, nil
