@@ -30,8 +30,7 @@ func (s *Storage) GetRemainingProducts() ([]RemainingProductRow, error) {
 	defer rows.Close()
 	for rows.Next() {
 		r := RemainingProductRow{}
-		qnt := 0
-		err = rows.Scan(&r.Product.Id, &r.Product.Name, &r.Manufacturer.Id, &r.Manufacturer.Name, &r.Zone.Id, &r.Zone.Name, &r.Cell.Id, &r.Cell.Name, &qnt)
+		err = rows.Scan(&r.Product.Id, &r.Product.Name, &r.Manufacturer.Id, &r.Manufacturer.Name, &r.Zone.Id, &r.Zone.Name, &r.Cell.Id, &r.Cell.Name, &r.Quantity)
 		if err != nil {
 			return retVal, err
 		}
