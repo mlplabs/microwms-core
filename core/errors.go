@@ -3,6 +3,7 @@ package core
 const (
 	SuccessCompleted = iota + 100
 	SystemError
+	ForeignKeyError
 )
 
 type WrapError struct {

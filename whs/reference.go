@@ -3,6 +3,7 @@ package whs
 import (
 	"database/sql"
 	"fmt"
+	"github.com/lib/pq"
 	"github.com/mlplabs/microwms-core/core"
 	"strings"
 )
@@ -97,8 +98,14 @@ func (r *Reference) deleteItem(id int64) (int64, error) {
 	sqlDel := fmt.Sprintf("DELETE FROM %s WHERE id=$1", r.Name)
 	res, err := r.Db.Exec(sqlDel, id)
 	if err != nil {
+		if pgErr, isPgErr := err.(*pq.Error); isPgErr {
+			if pgErr.Code == ("23503") {
+				return 0, &core.WrapError{Err: err, Code: core.ForeignKeyError}
+			}
+		}
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
+
 	affRows, err := res.RowsAffected()
 	if err != nil {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
