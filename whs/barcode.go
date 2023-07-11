@@ -155,8 +155,12 @@ func (s *Storage) GetSuggestionBarcodes(text string, limit int) ([]string, error
 }
 
 func (s *Storage) DeleteBarcode(m *Barcode) (int64, error) {
+	return s.DeleteBarcodeById(m.Id)
+}
+
+func (s *Storage) DeleteBarcodeById(barcodeId int64) (int64, error) {
 	sqlDel := fmt.Sprintf("DELETE FROM %s WHERE id=$1", tableRefBarcodes)
-	res, err := s.Db.Exec(sqlDel, m.Id)
+	res, err := s.Db.Exec(sqlDel, barcodeId)
 	if err != nil {
 		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
