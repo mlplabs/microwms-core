@@ -5,9 +5,9 @@ import (
 	"github.com/mlplabs/microwms-core/core"
 )
 
-//Whs is a physical warehouse object
-//It must contain at least 3 Zone{} zones - acceptance, storage and shipment.
-//There can be no more than 1 receiving and shipping zones, these zones are the entrance and exit in the warehouse, respectively
+// Whs is a physical warehouse object
+// It must contain at least 3 Zone{} zones - acceptance, storage and shipment.
+// There can be no more than 1 receiving and shipping zones, these zones are the entrance and exit in the warehouse, respectively
 type Whs struct {
 	Address        string `json:"address"`
 	AcceptanceZone Zone   `json:"acceptance_zone"`
@@ -123,6 +123,7 @@ func (s *Storage) CreateWhs(u *Whs) (int64, error) {
 			"doc_id   integer default 0 not null, "+
 			"doc_type smallint default 0 not null, "+
 			"row_id   varchar(36) default ''::character varying not null, "+
+			"row_time timestamptz default now(), "+
 			"zone_id  integer, "+
 			"cell_id  integer constraint storage%d_cells_id_fk references cells, "+
 			"prod_id  integer,	"+
