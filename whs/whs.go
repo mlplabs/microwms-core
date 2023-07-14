@@ -123,7 +123,7 @@ func (s *Storage) CreateWhs(u *Whs) (int64, error) {
 			"doc_id   integer default 0 not null, "+
 			"doc_type smallint default 0 not null, "+
 			"row_id   varchar(36) default ''::character varying not null, "+
-			"row_time timestamptz default now(), "+
+			"row_time timestamptz default now() not null, "+
 			"zone_id  integer, "+
 			"cell_id  integer constraint storage%d_cells_id_fk references cells, "+
 			"prod_id  integer,	"+
