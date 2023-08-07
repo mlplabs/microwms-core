@@ -28,13 +28,17 @@ type IDocItem interface {
 	getType() int
 }
 
+type Doc struct {
+	Id      int64  `json:"id"`
+	Number  string `json:"number"`
+	Date    string `json:"date"`
+	DocType int    `json:"doc_type"`
+}
+
 // DocItem строка документа (структура)
 type DocItem struct {
-	Id      int64    `json:"id"`
-	Number  string   `json:"number"`
-	Date    string   `json:"date"`
-	DocType int      `json:"doc_type"`
-	Items   []DocRow `json:"items"`
+	Doc
+	Items []DocRow `json:"items"`
 }
 
 func (d *DocItem) getId() int64 {
@@ -222,7 +226,23 @@ func (d *Document) findItemById(id int64) (*DocItem, error) {
 	return u, nil
 }
 
-// getItemById возвращает документ по id (полностью)
+// findItemByNumberDate finds a document by number and date (without goods)
+func (d *Document) findItemByNumberDate(number string, date time.Time) (*DocItem, error) {
+	sqlUsr := fmt.Sprintf("SELECT id, number, date, doc_type FROM %s WHERE number = $1 AND date::date = date_trunc('day', $2)", d.HeadersName)
+	row := d.Db.QueryRow(sqlUsr, number, date)
+	u := new(DocItem)
+	dateDoc := time.Time{}
+	err := row.Scan(&u.Id, &u.Number, &dateDoc, &u.DocType)
+	u.Number = u.GetNumber()
+	u.Date = GetDate(dateDoc)
+
+	if err != nil {
+		return nil, &core.WrapError{Err: err, Code: core.SystemError}
+	}
+	return u, nil
+}
+
+// getItemById returns the document by id (completely)
 func (d *Document) getItemById(id int64) (*DocItem, error) {
 	di := DocItem{}
 	sqlH := fmt.Sprintf("SELECT id, number, date, doc_type FROM %s WHERE id = $1", d.HeadersName)
