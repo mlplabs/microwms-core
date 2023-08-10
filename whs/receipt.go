@@ -40,9 +40,10 @@ func (s *Storage) GetReceiptItems(offset int, limit int) ([]TurnoversRow, int, e
 	args = append(args, limit)
 	args = append(args, offset)
 
-	sqlSel := fmt.Sprintf("SELECT s.doc_id, r.number, r.date, s.prod_id, coalesce(p.name, 'unknown'), s.quantity FROM storage1 s "+
+	sqlSel := fmt.Sprintf("SELECT s.doc_id, r.number, to_char(r.date, 'DD:MM:YYYY'), s.prod_id, coalesce(p.name, 'unknown'), m.id AS mnf_id, m.name AS mnf_name, s.quantity FROM storage1 s "+
 		"	LEFT JOIN receipt_headers r on r.id = s.doc_id "+
 		"	LEFT JOIN products p on p.id = s.prod_id "+
+		"	LEFT JOIN manufacturers m on m.id = p.manufacturer_id "+
 		"	%s "+
 		"	ORDER BY row_time ASC ", sqlCond)
 
@@ -55,7 +56,7 @@ func (s *Storage) GetReceiptItems(offset int, limit int) ([]TurnoversRow, int, e
 	items := make([]TurnoversRow, count, 10)
 	for rows.Next() {
 		item := new(TurnoversRow)
-		err = rows.Scan(&item.Doc.DocType, &item.Doc.Number, &item.Doc.Date, &item.Product.Id, &item.Product.Name, &item.Quantity)
+		err = rows.Scan(&item.Doc.Id, &item.Doc.Number, &item.Doc.Date, &item.Product.Id, &item.Product.Name, &item.Product.Manufacturer.Id, &item.Product.Manufacturer.Name, &item.Quantity)
 		items = append(items, *item)
 	}
 
