@@ -40,10 +40,11 @@ func (s *Storage) GetReceiptItems(offset int, limit int) ([]TurnoversRow, int, e
 	args = append(args, limit)
 	args = append(args, offset)
 
-	sqlSel := fmt.Sprintf("SELECT r.doc_id, r.number, r.date, s.prod_id, coalesce(p.name, 'unknown'), s.quantity FROM storage1 s "+
+	sqlSel := fmt.Sprintf("SELECT s.doc_id, r.number, r.date, s.prod_id, coalesce(p.name, 'unknown'), s.quantity FROM storage1 s "+
 		"	LEFT JOIN receipt_headers r on r.id = s.doc_id "+
 		"	LEFT JOIN products p on p.id = s.prod_id "+
-		"	%s ORDER BY row_time ASC ", sqlCond)
+		"	%s "+
+		"	ORDER BY row_time ASC ", sqlCond)
 
 	rows, err := s.Db.Query(sqlSel+" LIMIT $2 OFFSET $3", args...)
 	if err != nil {
@@ -59,7 +60,7 @@ func (s *Storage) GetReceiptItems(offset int, limit int) ([]TurnoversRow, int, e
 	}
 
 	sqlCount := fmt.Sprintf("SELECT COUNT(*) as count FROM ( %s ) sub", sqlSel)
-	err = s.Db.QueryRow(sqlCount).Scan(&count)
+	err = s.Db.QueryRow(sqlCount, DocumentTypeReceipt).Scan(&count)
 	if err != nil {
 		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
 	}
