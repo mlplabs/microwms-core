@@ -45,7 +45,7 @@ func (s *Storage) GetReceiptItems(offset int, limit int) ([]TurnoversRow, int, e
 		"	LEFT JOIN products p on p.id = s.prod_id "+
 		"	LEFT JOIN manufacturers m on m.id = p.manufacturer_id "+
 		"	%s "+
-		"	ORDER BY row_time ASC ", sqlCond)
+		"	ORDER BY row_time DESC ", sqlCond)
 
 	rows, err := s.Db.Query(sqlSel+" LIMIT $2 OFFSET $3", args...)
 	if err != nil {
@@ -74,17 +74,22 @@ CreateReceiptDoc - writes the document to the local database
 И вывод будем осуществлять в иерархии дат
 */
 func (s *Storage) CreateReceiptDoc(doc *DocItem) (int64, error) {
-	tx, err := s.Db.Begin()
-	if err != nil {
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
-	}
+	doc.DocType = DocumentTypeReceipt
 
+	if doc.Date == ""{
+		doc.Date = time.Now().Format("2006-01-02")
+	}
 	// Принцип такой
 	// Без документального учета при записи создаем документ на текущую дату и на него "вешаем" товары
 	// в результате должны получить одну строку документа в день (на пользователя)
 	targetDate := time.Now()
 	if doc.Date != "" {
 		targetDate, _ = time.Parse("2006-01-02", doc.Date)
+	}
+
+	tx, err := s.Db.Begin()
+	if err != nil {
+		return 0, &core.WrapError{Err: err, Code: core.SystemError}
 	}
 
 	_d, _ := s.FindReceiptDocByNumberDate(doc.Number, targetDate)
@@ -110,12 +115,6 @@ func (s *Storage) CreateReceiptDoc(doc *DocItem) (int64, error) {
 
 		item.Product.Id = pId
 		item.RowId = fmt.Sprintf("%d.%d", doc.Id, idx+1)
-		sqlInsI := fmt.Sprintf("INSERT INTO %s (parent_id, row_id, product_id, quantity) VALUES($1, $2, $3, $4)", tableDocReceiptItems)
-		_, err = tx.Exec(sqlInsI, doc.Id, item.RowId, item.Product.Id, item.Quantity)
-		if err != nil {
-			tx.Rollback()
-			return 0, &core.WrapError{Err: err, Code: core.SystemError}
-		}
 
 		c := Cell{Id: 2, WhsId: 1, ZoneId: 1}
 		s := Storage{Db: s.Db}

@@ -228,7 +228,7 @@ func (d *Document) findItemById(id int64) (*DocItem, error) {
 
 // findItemByNumberDate finds a document by number and date (without goods)
 func (d *Document) findItemByNumberDate(number string, date time.Time) (*DocItem, error) {
-	sqlUsr := fmt.Sprintf("SELECT id, number, date, doc_type FROM %s WHERE number = $1 AND date::date = date_trunc('day', $2)", d.HeadersName)
+	sqlUsr := fmt.Sprintf("SELECT id, number, date, doc_type FROM %s WHERE number = $1 AND date::date >= $2::date", d.HeadersName)
 	row := d.Db.QueryRow(sqlUsr, number, date)
 	u := new(DocItem)
 	dateDoc := time.Time{}
