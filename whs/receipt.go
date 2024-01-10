@@ -40,7 +40,7 @@ func (s *Storage) GetReceiptItems(offset int, limit int) ([]TurnoversRow, int, e
 	args = append(args, limit)
 	args = append(args, offset)
 
-	sqlSel := fmt.Sprintf("SELECT s.doc_id, r.number, to_char(r.date, 'DD:MM:YYYY'), s.prod_id, coalesce(p.name, 'unknown'), m.id AS mnf_id, m.name AS mnf_name, s.quantity FROM storage1 s "+
+	sqlSel := fmt.Sprintf("SELECT s.doc_id, r.number, to_char(r.date, 'DD.MM.YYYY'), s.prod_id, coalesce(p.name, 'unknown'), m.id AS mnf_id, m.name AS mnf_name, s.quantity FROM storage1 s "+
 		"	LEFT JOIN receipt_headers r on r.id = s.doc_id "+
 		"	LEFT JOIN products p on p.id = s.prod_id "+
 		"	LEFT JOIN manufacturers m on m.id = p.manufacturer_id "+
@@ -76,7 +76,7 @@ CreateReceiptDoc - writes the document to the local database
 func (s *Storage) CreateReceiptDoc(doc *DocItem) (int64, error) {
 	doc.DocType = DocumentTypeReceipt
 
-	if doc.Date == ""{
+	if doc.Date == "" {
 		doc.Date = time.Now().Format("2006-01-02")
 	}
 	// Принцип такой
