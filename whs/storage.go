@@ -59,16 +59,17 @@ const (
 )
 
 type Storage struct {
-	Db *sql.DB
+	Db     *sql.DB
+	dbUser string
 }
 
 var (
 	DefaultRowsLimit int
 )
 
-func (s *Storage) Init(host, dbname, dbuser, dbpass string) error {
+func (s *Storage) Init(host, dbName, dbUser, dbPass string) error {
 	var err error
-	connStr := fmt.Sprintf("host=%s dbname=%s user=%s password=%s sslmode=disable", host, dbname, dbuser, dbpass)
+	connStr := fmt.Sprintf("host=%s dbname=%s user=%s password=%s sslmode=disable", host, dbName, dbUser, dbPass)
 	s.Db, err = sql.Open("postgres", connStr)
 	if err != nil {
 		return err
@@ -78,6 +79,7 @@ func (s *Storage) Init(host, dbname, dbuser, dbpass string) error {
 	if err != nil {
 		return err
 	}
+	s.dbUser = dbUser
 	return nil
 }
 

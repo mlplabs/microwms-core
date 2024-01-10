@@ -128,7 +128,7 @@ func (s *Storage) CreateWhs(u *Whs) (int64, error) {
 			"cell_id  integer constraint storage%d_cells_id_fk references cells, "+
 			"prod_id  integer,	"+
 			"quantity integer ); "+
-			"alter table storage%d owner to devuser;", u.Id, u.Id, u.Id)
+			"alter table storage%d owner to %s;", u.Id, u.Id, u.Id, s.dbUser)
 	_, err = tx.Exec(sqlStorage)
 	if err != nil {
 		tx.Rollback()
