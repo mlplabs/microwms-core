@@ -9,8 +9,11 @@ const (
 
 // Cell ячейка склада
 type Cell struct {
-	Id            int64        `json:"id"`
-	Name          string       `json:"name"`
+	Catalog
+}
+
+type CellItem struct {
+	CatalogItem
 	WhsId         int          `json:"whs_id"`     // Id склада (может быть именован)
 	ZoneId        int          `json:"zone_id"`    // Id зоны назначения (может быть именован)
 	SectionId     int          `json:"section_id"` // Id секции/блока (может быть именован)
@@ -29,6 +32,38 @@ type CellService struct {
 	Storage *Storage
 }
 
+func (s *Storage) GetCell() *Cell {
+	c := new(Cell)
+	c.table = tableRefCells
+	c.setStorage(s)
+	return c
+}
+
+// FindById возвращает ячейку по внутреннему идентификатору
+func (c *Cell) FindById(cellId int64) (ICatalogItem, error) {
+	sqlCell := "SELECT id, name, whs_id, zone_id, passage_id, rack_id, floor, " +
+		"sz_length, sz_width, sz_height, sz_volume, sz_uf_volume, sz_weight, " +
+		"not_allowed_in, not_allowed_out, is_service, is_size_free, is_weight_free " +
+		"FROM %s WHERE id = $1"
+
+	row := c.getDb().QueryRow(fmt.Sprintf(sqlCell, c.getTableName()), cellId)
+	ci, _ := c.GetNewItem()
+
+	err := row.Scan(&ci.Id, &ci.Name, &ci.WhsId, &ci.ZoneId, &ci.PassageId, &ci.RackId, &ci.Floor,
+		&ci.Size.Length, &ci.Size.Width, &ci.Size.Height, &ci.Size.Volume, &ci.Size.UsefulVolume, &ci.Size.Weight,
+		&ci.NotAllowedIn, &ci.NotAllowedOut, &ci.IsService, &ci.IsSizeFree, &ci.IsWeightFree)
+	if err != nil {
+		return nil, err
+	}
+	return ci, nil
+}
+
+func (c *Cell) GetNewItem() (*CellItem, error) {
+	item := new(CellItem)
+	item.setCatalog(c)
+	return item, nil
+}
+
 // SetSize устанавливает размер ячейки
 func (sz *SpecificSize) SetSize(length, width, height int, kUV float32) {
 	sz.Volume = float32(length * width * height)
@@ -43,11 +78,11 @@ func (sz *SpecificSize) GetSize() (int, int, int, float32, float32) {
 }
 
 // GetNumeric возвращает строковое представление ячейки в виде набора чисел
-func (c *Cell) GetNumeric() string {
-	return fmt.Sprintf(CellNumericFormat, c.WhsId, c.ZoneId, c.PassageId, c.RackId, c.Floor)
+func (ci *CellItem) GetNumeric() string {
+	return fmt.Sprintf(CellNumericFormat, ci.WhsId, ci.ZoneId, ci.PassageId, ci.RackId, ci.Floor)
 }
 
 // GetNumericView возвращает человеко-понятное представление (с разделителями)
-func (c *Cell) GetNumericView() string {
-	return fmt.Sprintf(CellHumanViewFormat, c.WhsId, c.ZoneId, c.PassageId, c.RackId, c.Floor)
+func (ci *CellItem) GetNumericView() string {
+	return fmt.Sprintf(CellHumanViewFormat, ci.WhsId, ci.ZoneId, ci.PassageId, ci.RackId, ci.Floor)
 }

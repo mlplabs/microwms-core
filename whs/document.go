@@ -3,7 +3,6 @@ package whs
 import (
 	"database/sql"
 	"fmt"
-	"github.com/mlplabs/microwms-core/core"
 	"time"
 )
 
@@ -14,305 +13,212 @@ const (
 	DocumentTypeWriteOff = 4
 )
 
-// Document - абстракция документа
+type IDocument interface {
+	GetDocumentMetadata()
+	getDb() *sql.DB
+	getHeadTable() string
+	getRowTable() string
+}
+
+// IDocStorage документ связан с движением товара
+type IDocStorage interface {
+	GetWhs() *WhsItem
+}
+
 type Document struct {
-	HeadersName string
-	ItemsName   string
-	Db          *sql.DB
+	storage   *Storage
+	headTable string
+	rowsTable string
+	documentType int
 }
 
-// IDocItem интерфейс документа
-type IDocItem interface {
-	GetNumber() string
-	getId() int64
-	getType() int
+func (d *Document) GetDocumentMetadata() {
+	return
 }
 
-type Doc struct {
-	Id      int64  `json:"id"`
-	Number  string `json:"number"`
-	Date    string `json:"date"`
-	DocType int    `json:"doc_type"`
+func (d *Document) setStorage(s *Storage) {
+	d.storage = s
 }
 
-// DocItem строка документа (структура)
-type DocItem struct {
-	Doc
-	Items []DocRow `json:"items"`
+func (d *Document) getStorage() *Storage {
+	return d.storage
 }
 
-func (d *DocItem) getId() int64 {
-	return d.Id
+func (d *Document) getDb() *sql.DB {
+	return d.storage.Db
 }
 
-func (d *DocItem) getType() int {
-	return d.DocType
+func (d *Document) getHeadTable() string {
+	return d.headTable
 }
 
-func (d *DocItem) GetNumber() string {
-	return fmt.Sprintf("%06d.%d", d.Id, d.DocType)
+func (d *Document) getRowTable() string {
+	return d.rowsTable
 }
 
-// DocRow product line of the document
-type DocRow struct {
-	RowId    string  `json:"row_id"`
-	Product  Product `json:"product"`
-	Quantity int     `json:"quantity"`
-	CellSrc  Cell    `json:"cell_src"` // from
-	CellDst  Cell    `json:"cell_dst"` // to
-}
-
-// getItems returns a list of documents (without goods)
-func (d *Document) getItems(offset int, limit int) ([]DocItem, int, error) {
+// GetItems returns a list of documents (without goods)
+func (d *Document) GetItems(offset int, limit int) ([]IDocumentItem, int, error) {
 	var count int
-	sqlCond := ""
+	sqlCond := "WHERE doc_type = $1"
 
 	args := make([]any, 0)
 
 	if limit == 0 {
-		limit = 10
+		limit = DefaultRowsLimit
 	}
+	args = append(args, d.documentType)
 	args = append(args, limit)
 	args = append(args, offset)
 
-	sqlSel := fmt.Sprintf("SELECT id, number, date, doc_type FROM %s %s ORDER BY date ASC", d.HeadersName, sqlCond)
+	sqlSel := fmt.Sprintf("SELECT id, number, date, doc_type, whs_id FROM %s %s ORDER BY date ASC", d.getHeadTable(), sqlCond)
 
-	rows, err := d.Db.Query(sqlSel+" LIMIT $1 OFFSET $2", args...)
+	rows, err := d.getDb().Query(sqlSel+" LIMIT $2 OFFSET $3", args...)
 	if err != nil {
-		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
+		return nil, count, err
 	}
 	defer rows.Close()
 
-	items := make([]DocItem, count, 10)
+	items := make([]IDocumentItem, count, limit)
 	for rows.Next() {
-		item := new(DocItem)
+		item, _ := d.GetNewItem()
 		dateDoc := time.Time{}
-		err = rows.Scan(&item.Id, &item.Number, &dateDoc, &item.DocType)
+		err = rows.Scan(&item.Id, &item.Number, &dateDoc, &item.Type, &item.WhsId)
 		item.Number = item.GetNumber()
-		item.Date = GetDate(dateDoc)
-		items = append(items, *item)
+		item.Date = item.GetDate(dateDoc)
+		items = append(items, item)
 	}
 
 	sqlCount := fmt.Sprintf("SELECT COUNT(*) as count FROM ( %s ) sub", sqlSel)
-	err = d.Db.QueryRow(sqlCount).Scan(&count)
+	err = d.getDb().QueryRow(sqlCount, d.documentType).Scan(&count)
 	if err != nil {
-		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
+		return nil, count, err
 	}
 	return items, count, nil
 }
 
-// createItem creates a document
-func (d *Document) createItem(docItem *DocItem) (int64, error) {
-	tx, err := d.Db.Begin()
-	if err != nil {
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-	sqlInsH := fmt.Sprintf("INSERT INTO %s (number, date, doc_type) VALUES($1, $2, $3) RETURNING id", d.HeadersName)
-	err = tx.QueryRow(sqlInsH, docItem.Number, docItem.Date, DocumentTypeReceipt).Scan(&docItem.Id)
-	if err != nil {
-		tx.Rollback()
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-	for idx, item := range docItem.Items {
-		if item.Product.Id == 0 {
-			if item.Product.Manufacturer.Id == 0 {
-				sqlInsMnf := fmt.Sprintf("INSERT INTO %s (name) VALUES ($1) RETURNING id", tableRefManufacturers)
-				err = tx.QueryRow(sqlInsMnf, item.Product.Manufacturer.Name).Scan(&item.Product.Manufacturer.Id)
-				if err != nil {
-					tx.Rollback()
-					return 0, &core.WrapError{Err: err, Code: core.SystemError}
-				}
-			}
-			sqlInsP := fmt.Sprintf("INSERT INTO %s (name, manufacturer_id) VALUES($1, $2) RETURNING id", tableRefProducts)
-			err = tx.QueryRow(sqlInsP, item.Product.Name, item.Product.Manufacturer.Id).Scan(&item.Product.Id)
-			if err != nil {
-				tx.Rollback()
-				return 0, &core.WrapError{Err: err, Code: core.SystemError}
-			}
-		}
-		item.RowId = fmt.Sprintf("%d.%d", docItem.Id, idx+1)
-		sqlInsI := fmt.Sprintf("INSERT INTO %s (parent_id, row_id, product_id, quantity) VALUES($1, $2, $3, $4)", d.ItemsName)
-		_, err = tx.Exec(sqlInsI, docItem.Id, item.RowId, item.Product.Id, item.Quantity)
-		if err != nil {
-			tx.Rollback()
-			return 0, &core.WrapError{Err: err, Code: core.SystemError}
-		}
-
-		c := Cell{Id: 2, WhsId: 1, ZoneId: 1}
-		s := Storage{Db: d.Db}
-		item.CellDst = c
-
-		_, err = s.PutRow(docItem, &item, tx)
-		if err != nil {
-			tx.Rollback()
-			return 0, &core.WrapError{Err: err, Code: core.SystemError}
-
-		}
-	}
-	err = tx.Commit()
-	if err != nil {
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-
-	return docItem.Id, nil
-}
-
-// updateItem updates the document
-func (d *Document) updateItem(docItem *DocItem) (int64, error) {
-	tx, err := d.Db.Begin()
-	if err != nil {
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-	sqlUpdH := fmt.Sprintf("UPDATE %s SET number = $1, date = $2, doc_type = $3 WHERE id = $4", d.HeadersName)
-	_, err = tx.Exec(sqlUpdH, docItem.Number, docItem.Date, DocumentTypePosting, docItem.Id)
-	if err != nil {
-		tx.Rollback()
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-
-	sqlDelProd := fmt.Sprintf("DELETE FROM %s WHERE parent_id = $1", d.ItemsName)
-	_, err = tx.Exec(sqlDelProd, docItem.Id)
-	if err != nil {
-		tx.Rollback()
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-
-	for idx, item := range docItem.Items {
-		if item.Product.Id == 0 {
-			if item.Product.Manufacturer.Id == 0 {
-				sqlInsMnf := fmt.Sprintf("INSERT INTO %s (name) VALUES ($1) RETURNING id", tableRefManufacturers)
-				err = tx.QueryRow(sqlInsMnf, item.Product.Manufacturer.Name).Scan(&item.Product.Manufacturer.Id)
-				if err != nil {
-					tx.Rollback()
-					return 0, &core.WrapError{Err: err, Code: core.SystemError}
-				}
-			}
-			sqlInsP := fmt.Sprintf("INSERT INTO %s (name, manufacturer_id) VALUES($1, $2) RETURNING id", tableRefProducts)
-			err = tx.QueryRow(sqlInsP, item.Product.Name, item.Product.Manufacturer.Id).Scan(&item.Product.Id)
-			if err != nil {
-				tx.Rollback()
-				return 0, &core.WrapError{Err: err, Code: core.SystemError}
-			}
-		}
-		RowId := fmt.Sprintf("%d.%d", docItem.Id, idx+1)
-		sqlInsI := fmt.Sprintf("INSERT INTO %s (parent_id, row_id, product_id, quantity) VALUES($1, $2, $3, $4)", d.ItemsName)
-		_, err = tx.Exec(sqlInsI, docItem.Id, RowId, item.Product.Id, item.Quantity)
-		if err != nil {
-			tx.Rollback()
-			return 0, &core.WrapError{Err: err, Code: core.SystemError}
-		}
-	}
-	err = tx.Commit()
-	if err != nil {
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-
-	return docItem.Id, nil
-}
-
-// findItemById finds a document by id (without goods)
-func (d *Document) findItemById(id int64) (*DocItem, error) {
-	sqlUsr := fmt.Sprintf("SELECT id, number, date, doc_type FROM %s WHERE id = $1", d.HeadersName)
-	row := d.Db.QueryRow(sqlUsr, id)
-	u := new(DocItem)
+// FindByNumberDate finds a document by number and date (without goods)
+func (d *Document) FindByNumberDate(number string, date time.Time) (*DocumentItem, error) {
+	sqlUsr := fmt.Sprintf("SELECT id, number, date, doc_type FROM %s WHERE number = $1 AND date::date >= $2::date", d.getHeadTable())
+	row := d.getDb().QueryRow(sqlUsr, number, date)
+	u := new(DocumentItem)
 	dateDoc := time.Time{}
-	err := row.Scan(&u.Id, &u.Number, &dateDoc, &u.DocType)
+	err := row.Scan(&u.Id, &u.Number, &dateDoc, &u.Type)
 	u.Number = u.GetNumber()
-	u.Date = GetDate(dateDoc)
+	u.Date = u.GetDate(dateDoc)
 
 	if err != nil {
-		return nil, &core.WrapError{Err: err, Code: core.SystemError}
+		return nil, err
 	}
 	return u, nil
 }
 
-// findItemByNumberDate finds a document by number and date (without goods)
-func (d *Document) findItemByNumberDate(number string, date time.Time) (*DocItem, error) {
-	sqlUsr := fmt.Sprintf("SELECT id, number, date, doc_type FROM %s WHERE number = $1 AND date::date >= $2::date", d.HeadersName)
-	row := d.Db.QueryRow(sqlUsr, number, date)
-	u := new(DocItem)
+// FindById finds a document by id (without goods)
+func (d *Document) FindById(id int64) (IDocumentItem, error) {
+	sqlSel := fmt.Sprintf("SELECT id, number, date, doc_type, whs_id FROM %s WHERE id = $1", d.getHeadTable())
+	row := d.getDb().QueryRow(sqlSel, id)
+
+	di := new(DocumentItem)
 	dateDoc := time.Time{}
-	err := row.Scan(&u.Id, &u.Number, &dateDoc, &u.DocType)
-	u.Number = u.GetNumber()
-	u.Date = GetDate(dateDoc)
-
+	err := row.Scan(&di.Id, &di.Number, &dateDoc, &di.Type, &di.WhsId)
 	if err != nil {
-		return nil, &core.WrapError{Err: err, Code: core.SystemError}
+		return nil, err
 	}
-	return u, nil
-}
-
-// getItemById returns the document by id (completely)
-func (d *Document) getItemById(id int64) (*DocItem, error) {
-	di := DocItem{}
-	sqlH := fmt.Sprintf("SELECT id, number, date, doc_type FROM %s WHERE id = $1", d.HeadersName)
-	row := d.Db.QueryRow(sqlH, id)
-	dateDoc := time.Time{}
-	err := row.Scan(&di.Id, &di.Number, &dateDoc, &di.DocType)
-	if err != nil {
-		return nil, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-
 	di.Number = di.GetNumber()
-	di.Date = GetDate(dateDoc)
-
-	sqlI := fmt.Sprintf("SELECT ri.row_id, ri.product_id, p.name, p.manufacturer_id, COALESCE(m.name, '') AS manufacturer_name, s.quantity, c.id AS cell_id, COALESCE(c.name, '') AS cell_name "+
-		"FROM %s ri "+
-		"LEFT JOIN %s p ON ri.product_id = p.id "+
-		"LEFT JOIN %s m ON p.manufacturer_id = m.id "+
-		"LEFT JOIN %s s ON s.doc_id = $1 AND s.row_id = ri.row_id "+
-		"LEFT JOIN %s c ON s.cell_id = c.id "+
-		"WHERE ri.parent_id = $1", d.ItemsName, tableRefProducts, tableRefManufacturers, "storage1", tableRefCells)
-	rows, err := d.Db.Query(sqlI, id)
-	if err != nil {
-		return nil, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-	defer rows.Close()
-	for rows.Next() {
-		r := DocRow{}
-		cellId := 0
-		cellName := ""
-		err = rows.Scan(&r.RowId, &r.Product.Id, &r.Product.Name, &r.Product.Manufacturer.Id, &r.Product.Manufacturer.Name, &r.Quantity, &cellId, &cellName)
-		if di.getType() == DocumentTypeReceipt {
-			r.CellDst.Id = int64(cellId)
-			r.CellDst.Name = cellName
-		}
-		di.Items = append(di.Items, r)
-	}
-	return &di, nil
+	di.Date = di.GetDate(dateDoc)
+	return di, nil
 }
 
-func (d *Document) deleteItem(id int64) (int64, error) {
-	sqlDelI := fmt.Sprintf("DELETE FROM %s WHERE parent_id = $1", d.ItemsName)
-	sqlDelH := fmt.Sprintf("DELETE FROM %s WHERE id = $1", d.HeadersName)
-	tx, err := d.Db.Begin()
+// GetById finds a document by id (with goods)
+func (d *Document) GetById(id int64) (IDocumentItem, error) {
+	sqlSel := fmt.Sprintf("SELECT id, number, date, doc_type, whs_id FROM %s WHERE id = $1", d.getHeadTable())
+	row := d.getDb().QueryRow(sqlSel, id)
+	di := new(DocumentItem)
+	dateDoc := time.Time{}
+	err := row.Scan(&di.Id, &di.Number, &dateDoc, &di.Type, &di.WhsId)
+	di.Number = di.GetNumber()
+	di.Date = di.GetDate(dateDoc)
 	if err != nil {
-		return 0, err
-	}
-	_, err = tx.Exec(sqlDelI, id)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-	res, err := tx.Exec(sqlDelH, id)
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-	affRows, err := res.RowsAffected()
-	if err != nil {
-		tx.Rollback()
-		return 0, err
+		return nil, err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		tx.Rollback()
-		return 0, err
-	}
-	return affRows, nil
+	// Тут надо сделать выборку товаров для базового варианта документа на основе просто детальной талблицы getRowTable()
+
+
+	//sqlRows := fmt.Sprintf("SELECT st.row_id, st.prod_id, p.name, "+
+	//	"	p.manufacturer_id, COALESCE(m.name, '') AS manufacturer_name, "+
+	//	"	st.quantity, st.cell_id, COALESCE(c.name, '') AS cell_name "+
+	//	"		FROM storage%d st "+
+	//	"	LEFT JOIN products p ON st.prod_id = p.id "+
+	//	"	LEFT JOIN manufacturers m ON p.manufacturer_id = m.id "+
+	//	"	LEFT JOIN cells c ON st.cell_id = c.id "+
+	//	"	WHERE doc_id = $1", di.WhsId)
+	//rows, err := d.getDb().Query(sqlRows, id)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//defer rows.Close()
+	//for rows.Next() {
+	//	r := DocumentRow{}
+	//	cellId := 0
+	//	cellName := ""
+	//	err = rows.Scan(&r.RowId, &r.Product.Id, &r.Product.Name, &r.Product.Manufacturer.Id, &r.Product.Manufacturer.Name, &r.Quantity, &cellId, &cellName)
+	//	if di.GetType() == DocumentTypeReceipt {
+	//		r.CellDst.Id = int64(cellId)
+	//		r.CellDst.Name = cellName
+	//	}
+	//	di.Rows = append(di.Rows, r)
+	//}
+	return di, nil
 }
 
-func GetDate(date time.Time) string {
-	return date.Format("02.01.2006 15:04:05")
+func (d *Document) GetProductItems(offset int, limit int) ([]ProductItem, error) {
+	//
+	//	var count int
+	//	sqlCond := "WHERE s.doc_type = $1"
+	//
+	//	args := make([]any, 0)
+	//
+	//	if limit == 0 {
+	//		limit = 10
+	//	}
+	//
+	//	args = append(args, DocumentTypeReceipt)
+	//	args = append(args, limit)
+	//	args = append(args, offset)
+	//
+	//	sqlSel := fmt.Sprintf("SELECT s.doc_id, r.number, to_char(r.date, 'DD.MM.YYYY'), s.prod_id, coalesce(p.name, 'unknown'), m.id AS mnf_id, m.name AS mnf_name, s.quantity FROM storage1 s "+
+	//		"	LEFT JOIN receipt_headers r on r.id = s.doc_id "+
+	//		"	LEFT JOIN products p on p.id = s.prod_id "+
+	//		"	LEFT JOIN manufacturers m on m.id = p.manufacturer_id "+
+	//		"	%s "+
+	//		"	ORDER BY row_time DESC ", sqlCond)
+	//
+	//	rows, err := s.Db.Query(sqlSel+" LIMIT $2 OFFSET $3", args...)
+	//	if err != nil {
+	//		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
+	//	}
+	//	defer rows.Close()
+	//
+	//	items := make([]TurnoversRow, count, 10)
+	//	for rows.Next() {
+	//		item := new(TurnoversRow)
+	//		err = rows.Scan(&item.Doc.Id, &item.Doc.Number, &item.Doc.Date, &item.Product.Id, &item.Product.Name, &item.Product.Manufacturer.Id, &item.Product.Manufacturer.Name, &item.Quantity)
+	//		items = append(items, *item)
+	//	}
+	//
+	//	sqlCount := fmt.Sprintf("SELECT COUNT(*) as count FROM ( %s ) sub", sqlSel)
+	//	err = s.Db.QueryRow(sqlCount, DocumentTypeReceipt).Scan(&count)
+	//	if err != nil {
+	//		return nil, count, &core.WrapError{Err: err, Code: core.SystemError}
+	//	}
+	//	return items, count, nil
+	return nil, nil
 }
+
+func (d *Document) GetNewItem() (*DocumentItem, error) {
+	item := new(DocumentItem)
+	item.setDocument(d)
+	item.Rows = make([]DocumentRow, 0)
+	return item, nil
+}
+

@@ -2,120 +2,169 @@ package whs
 
 import (
 	"fmt"
-	"github.com/mlplabs/microwms-core/core"
 )
 
 // Whs is a physical warehouse object
 // It must contain at least 3 Zone{} zones - acceptance, storage and shipment.
 // There can be no more than 1 receiving and shipping zones, these zones are the entrance and exit in the warehouse, respectively
 type Whs struct {
-	Address        string `json:"address"`
-	AcceptanceZone Zone   `json:"acceptance_zone"`
-	ShippingZone   Zone   `json:"shipping_zone"`
-	StorageZones   []Zone `json:"storage_zones"`
-	CustomZones    []Zone `json:"custom_zones"`
-	RefItem
+	Catalog
 }
 
-// GetWhsItems returns a list of warehouses
-func (s *Storage) GetWhsItems(offset int, limit int, parentId int64) ([]Whs, int, error) {
-	items, count, err := s.GetReference(tableRefWhs).getItems(offset, limit, parentId)
-	if err != nil {
-		return nil, 0, err
-	}
-	retVal := make([]Whs, len(items))
-	for idx, item := range items {
-		u := new(Whs)
-		u.RefItem = item
-		retVal[idx] = *u
-	}
-	return retVal, count, nil
+type WhsItem struct {
+	CatalogItem
+	Address        string     `json:"address"`
+	AcceptanceZone ZoneItem   `json:"acceptance_zone"`
+	ShippingZone   ZoneItem   `json:"shipping_zone"`
+	StorageZones   []ZoneItem `json:"storage_zones"`
+	CustomZones    []ZoneItem `json:"custom_zones"`
 }
 
-// FindWhsById returns a warehouse item by id
-func (s *Storage) FindWhsById(whsId int64) (*Whs, error) {
-	item, err := s.GetReference(tableRefWhs).findItemById(whsId)
-	u := new(Whs)
-	u.RefItem = *item
-	return u, err
+func (s *Storage) GetWhs() *Whs {
+	m := new(Whs)
+	m.table = tableRefWhs
+	m.setStorage(s)
+	return m
 }
 
-// GetWhsById returns a warehouse object by id
-func (s *Storage) GetWhsById(whsId int64) (*Whs, error) {
-	w := new(Whs)
-	w.StorageZones = make([]Zone, 0)
-	w.CustomZones = make([]Zone, 0)
+// GetItems returns a list items of catalog
+func (w *Whs) GetItems(offset int, limit int) ([]ICatalogItem, int, error) {
+	var count int
+	sqlCond := ""
+	args := make([]any, 0)
 
-	sqlWhs := fmt.Sprintf("SELECT id, name, address FROM %s WHERE id = $1", tableRefWhs)
-	row := s.Db.QueryRow(sqlWhs, whsId)
-
-	err := row.Scan(&w.Id, &w.Name, &w.Address)
-	if err != nil {
-		return nil, &core.WrapError{Err: err, Code: core.SystemError}
+	if limit == 0 {
+		limit = DefaultRowsLimit
 	}
+	args = append(args, limit)
+	args = append(args, offset)
 
-	sqlZ := fmt.Sprintf("SELECT id, name, parent_id, zone_type FROM %s WHERE parent_id = $1", tableRefZones)
-	rows, err := s.Db.Query(sqlZ, whsId)
+	sqlSel := fmt.Sprintf("SELECT id, name FROM %s %s ORDER BY name ASC", w.getTableName(), sqlCond)
+
+	rows, err := w.getDb().Query(sqlSel+" LIMIT $1 OFFSET $2", args...)
 	if err != nil {
-		return nil, &core.WrapError{Err: err, Code: core.SystemError}
+		return nil, count, err
 	}
 	defer rows.Close()
+
+	items := make([]ICatalogItem, count, limit)
 	for rows.Next() {
-		z := Zone{}
-		err = rows.Scan(&z.Id, &z.Name, &z.ParentId, &z.ZoneType)
-		if z.ZoneType == ZoneTypeIncoming {
-			w.AcceptanceZone = z
-		}
-		if z.ZoneType == ZoneTypeOutGoing {
-			w.ShippingZone = z
-		}
-		if z.ZoneType == ZoneTypeStorage {
-			w.StorageZones = append(w.StorageZones, z)
-		}
-		if z.ZoneType == ZoneTypeCustom {
-			w.CustomZones = append(w.CustomZones, z)
-		}
+		item, _ := w.GetNewItem()
+		item.catalog = w
 
+		err = rows.Scan(&item.Id, &item.Name)
+		items = append(items, item)
 	}
-	return w, nil
+
+	sqlCount := fmt.Sprintf("SELECT COUNT(*) as count FROM ( %s ) sub", sqlSel)
+	err = w.getDb().QueryRow(sqlCount).Scan(&count)
+	if err != nil {
+		return nil, count, err
+	}
+	return items, count, nil
 }
 
-// GetWhsZones returns a warehouse object by id
-func (s *Storage) GetWhsZones(whs *Whs) ([]Zone, error) {
-	return s.FindZonesByParentId(whs.Id)
+// FindById returns a warehouse object by id
+func (w *Whs) FindById(itemId int64) (ICatalogItem, error) {
+	catZone := w.storage.GetZone()
+
+	item, _ := w.GetNewItem()
+	sqlWhs := fmt.Sprintf("SELECT id, name, address FROM %s WHERE id = $1", w.getTableName())
+	row := w.getDb().QueryRow(sqlWhs, itemId)
+
+	err := row.Scan(&item.Id, &item.Name, &item.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	zones, err := catZone.FindByOwnerId(itemId)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range zones {
+		if v.Type == ZoneTypeIncoming {
+			item.AcceptanceZone = v
+		}
+		if v.Type == ZoneTypeOutGoing {
+			item.ShippingZone = v
+		}
+		if v.Type == ZoneTypeStorage {
+			item.StorageZones = append(item.StorageZones, v)
+		}
+		if v.Type == ZoneTypeCustom {
+			item.CustomZones = append(item.CustomZones, v)
+		}
+	}
+	return item, nil
 }
 
-// CreateWhs creates a new warehouse
-func (s *Storage) CreateWhs(u *Whs) (int64, error) {
-	// TODO: необходимо создать storage
+func (w *Whs) GetNewItem() (*WhsItem, error) {
+	item := new(WhsItem)
+	item.setCatalog(w)
+	item.StorageZones = make([]ZoneItem, 0)
+	item.CustomZones = make([]ZoneItem, 0)
+	return item, nil
+}
 
-	tx, err := s.Db.Begin()
-	if err != nil {
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
-	}
+// GetZones returns zones
+func (wi *WhsItem) GetZones() ([]ZoneItem, error) {
+	catZone := wi.getStorage().GetZone()
+	return catZone.FindByOwnerId(wi.GetId())
+}
 
-	sqlCreate := fmt.Sprintf("INSERT INTO %s (name, address) VALUES ($1, $2) RETURNING id", "whs")
-	err = tx.QueryRow(sqlCreate, u.Name, u.Address).Scan(&u.Id)
+// Store creates a new warehouse
+func (wi *WhsItem) Store() (int64, int64, error) {
+	catZone := wi.getStorage().GetZone()
+	tx, err := wi.getDb().Begin()
 	if err != nil {
-		tx.Rollback()
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
+		return 0, 0, err
 	}
-	sqlCreateZIn := "INSERT INTO zones (name, zone_type, parent_id) VALUES ($1, $2, $3)"
-	_, err = tx.Exec(sqlCreateZIn, "Зона приемки", ZoneTypeIncoming, u.Id)
-	if err != nil {
-		tx.Rollback()
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
-	}
-	_, err = tx.Exec(sqlCreateZIn, "Зона отгрузки", ZoneTypeOutGoing, u.Id)
-	if err != nil {
-		tx.Rollback()
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
-	}
+	if wi.GetId() == 0 {
+		sqlCreate := fmt.Sprintf("INSERT INTO %s (name, address) VALUES ($1, $2) RETURNING id", wi.getTableName())
+		err = tx.QueryRow(sqlCreate, wi.Name, wi.Address).Scan(&wi.Id)
+		if err != nil {
+			tx.Rollback()
+			return 0, 0, err
+		}
+		z, _ := catZone.GetNewItem()
+		z.Name = "Зона приемки"
+		z.Type = ZoneTypeIncoming
+		z.OwnerId = wi.Id
+		_, _, err = z.StoreTx(tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, 0, err
+		}
 
-	_, err = tx.Exec(sqlCreateZIn, "Зона хранения", ZoneTypeStorage, u.Id)
-	if err != nil {
-		tx.Rollback()
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
+		z.Id = 0
+		z.Name = "Зона отгрузки"
+		z.Type = ZoneTypeOutGoing
+		z.OwnerId = wi.Id
+		_, _, err = z.StoreTx(tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, 0, err
+		}
+		z.Id = 0
+		z.Name = "Зона хранения"
+		z.Type = ZoneTypeStorage
+		z.OwnerId = wi.Id
+		_, _, err = z.StoreTx(tx)
+		if err != nil {
+			tx.Rollback()
+			return 0, 0, err
+		}
+	} else {
+		sqlUpdate := fmt.Sprintf("UPDATE %s SET name = $2, address = $3 WHERE id = $1", wi.getTableName())
+		res, err := wi.getDb().Exec(sqlUpdate, wi.GetId(), wi.Name, wi.Address)
+		if err != nil {
+			return 0, 0, err
+		}
+		if a, err := res.RowsAffected(); a != 1 || err != nil {
+			return 0, a, err
+		}
+		return wi.GetId(), 1, nil
 	}
 
 	sqlStorage := fmt.Sprintf(
@@ -128,29 +177,24 @@ func (s *Storage) CreateWhs(u *Whs) (int64, error) {
 			"cell_id  integer constraint storage%d_cells_id_fk references cells, "+
 			"prod_id  integer,	"+
 			"quantity integer ); "+
-			"alter table storage%d owner to %s;", u.Id, u.Id, u.Id, s.dbUser)
+			"alter table storage%d owner to %s;", wi.Id, wi.Id, wi.Id, wi.getStorage().dbUser)
 	_, err = tx.Exec(sqlStorage)
 	if err != nil {
 		tx.Rollback()
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
+		return 0, 0, err
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		tx.Rollback()
-		return 0, &core.WrapError{Err: err, Code: core.SystemError}
+		return 0, 0, err
 	}
 
-	return u.GetId(), nil
+	return wi.GetId(), 1, nil
 }
 
-// UpdateWhs updates the warehouse
-func (s *Storage) UpdateWhs(u *Whs) (int64, error) {
-	return s.GetReference(tableRefWhs).updateItem(u)
-}
-
-// DeleteWhs deletes warehouse
-func (s *Storage) DeleteWhs(u *Whs) (int64, error) {
+// Delete delete warehouse
+func (wi *WhsItem) Delete() (int64, error) {
 	// TODO: need to remove child elements
-	return s.GetReference(tableRefWhs).deleteItem(u.Id)
+	return wi.CatalogItem.Delete()
 }

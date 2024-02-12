@@ -55,7 +55,7 @@ const (
 	tableRefZones          = "zones"
 	tableRefCells          = "cells"
 	tableDocReceiptHeaders = "receipt_headers"
-	tableDocReceiptItems   = "receipt_items"
+	tableDocShipmentHeaders = "shipment_headers"
 )
 
 type Storage struct {
@@ -63,8 +63,29 @@ type Storage struct {
 	dbUser string
 }
 
+type TurnoversProductRow struct {
+	Doc      IDocumentItem     `json:"doc"`
+	Product  *ProductItem `json:"product"`
+	Quantity int          `json:"quantity"`
+}
+
+type TurnoversParams struct {
+	Debit    bool
+	Credit   bool
+	DocTypes []int
+}
+
+type RemainingProductRow struct {
+	Product      *ProductItem      `json:"product"`
+	Manufacturer *ManufacturerItem `json:"manufacturer"`
+	Zone         *ZoneItem         `json:"zone"`
+	Cell         *CellItem         `json:"cell"`
+	Quantity     int               `json:"quantity"`
+}
+
 var (
-	DefaultRowsLimit int
+	DefaultRowsLimit       int = 10
+	DefaultSuggestionLimit int = 10
 )
 
 func (s *Storage) Init(host, dbName, dbUser, dbPass string) error {
@@ -83,50 +104,49 @@ func (s *Storage) Init(host, dbName, dbUser, dbPass string) error {
 	return nil
 }
 
-func (s *Storage) GetReference(refTableName string) *Reference {
-	return &Reference{
-		Name: refTableName,
-		Db:   s.Db,
+func (s *Storage) GetCatalogByName(catalogName string) (ICatalog, error) {
+	switch catalogName {
+	case "whs":
+		return s.GetWhs(), nil
+	case "zones":
+		return s.GetZone(), nil
+	case "users":
+		return s.GetUser(), nil
+	case "products":
+		return s.GetProduct(), nil
+	case "manufacturers":
+		return s.GetManufacturer(), nil
+	case "barcodes":
+		return s.GetBarcode(), nil
+	case "cells":
+		return s.GetCell(), nil
+	default:
+		return new(Catalog), fmt.Errorf("catalog %s not found")
 	}
 }
 
-func (s *Storage) GetDocument(docTableName docTables) *Document {
-	return &Document{
-		HeadersName: docTableName.Headers,
-		ItemsName:   docTableName.Items,
-		Db:          s.Db,
-	}
-}
+//func (s *Storage) GetDocument(docTableName docTables) *Document {
+//	return &Document{
+//		HeadersName: docTableName.Headers,
+//		ItemsName:   docTableName.Items,
+//		Db:          s.Db,
+//	}
+//}
 
 func (s *Storage) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return s.Db.Query(query, args...)
 }
 
-// FindCellById возвращает ячейку по внутреннему идентификатору
-func (s *Storage) FindCellById(cellId int64) (*Cell, error) {
-	sqlCell := "SELECT id, name, whs_id, zone_id, passage_id, rack_id, floor, sz_length, sz_width, sz_height, sz_volume, sz_uf_volume, sz_weight, not_allowed_in, not_allowed_out, is_service, is_size_free, is_weight_free FROM cells WHERE id = $1"
-	row := s.Db.QueryRow(sqlCell, cellId)
-	c := new(Cell)
-
-	err := row.Scan(&c.Id, &c.Name, &c.WhsId, &c.ZoneId, &c.PassageId, &c.RackId, &c.Floor,
-		&c.Size.Length, &c.Size.Width, &c.Size.Height, &c.Size.Volume, &c.Size.UsefulVolume, &c.Size.Weight,
-		&c.NotAllowedIn, &c.NotAllowedOut, &c.IsService, &c.IsSizeFree, &c.IsWeightFree)
-	if err != nil {
-		return nil, err
-	}
-	return c, nil
-}
-
 // PutRow размещает в ячейку (cell) продукт (prod) в количестве (quantity)
 // Возвращает количество которое было размещено (quantity)
-func (s *Storage) PutRow(d IDocItem, row *DocRow, tx *sql.Tx) (int, error) {
+func (s *Storage) PutRow(d IDocumentItem, row *DocumentRow, tx *sql.Tx) (int, error) {
 	var err error
 
 	sqlIns := fmt.Sprintf("INSERT INTO storage%d (doc_id, doc_type, zone_id, cell_id, row_id, prod_id, quantity) VALUES ($1, $2, $3, $4, $5, $6, $7)", row.CellDst.WhsId)
 	if tx != nil {
-		_, err = tx.Exec(sqlIns, d.getId(), d.getType(), row.CellDst.ZoneId, row.CellDst.Id, row.RowId, row.Product.Id, row.Quantity)
+		_, err = tx.Exec(sqlIns, d.GetId(), d.GetType(), row.CellDst.ZoneId, row.CellDst.Id, row.RowId, row.Product.Id, row.Quantity)
 	} else {
-		_, err = s.Db.Exec(sqlIns, d.getId(), d.getType(), row.CellDst.ZoneId, row.CellDst.Id, row.RowId, row.Product.Id, row.Quantity)
+		_, err = s.Db.Exec(sqlIns, d.GetId(), d.GetType(), row.CellDst.ZoneId, row.CellDst.Id, row.RowId, row.Product.Id, row.Quantity)
 	}
 	if err != nil {
 		return 0, err
@@ -136,7 +156,7 @@ func (s *Storage) PutRow(d IDocItem, row *DocRow, tx *sql.Tx) (int, error) {
 
 // GetRow отбирает из ячейки (cell) продукт (prod) в количестве (quantity)
 // Возвращает отобранное количество (quantity)
-func (s *Storage) GetRow(d IDocItem, row *DocRow, tx *sql.Tx) (int, error) {
+func (s *Storage) GetRow(d IDocumentItem, row *DocumentRow, tx *sql.Tx) (int, error) {
 	var err error
 
 	if tx == nil {
@@ -148,7 +168,7 @@ func (s *Storage) GetRow(d IDocItem, row *DocRow, tx *sql.Tx) (int, error) {
 	}
 
 	sqlInsert := fmt.Sprintf("INSERT INTO storage%d (doc_id, doc_type, zone_id, cell_id, row_id, prod_id, quantity) VALUES ($1, $2, $3, $4)", row.CellSrc.WhsId)
-	_, err = tx.Exec(sqlInsert, d.getId(), d.getType(), row.CellSrc.ZoneId, row.CellSrc.Id, row.RowId, row.Product.Id, -1*row.Quantity)
+	_, err = tx.Exec(sqlInsert, d.GetId(), d.GetType(), row.CellSrc.ZoneId, row.CellSrc.Id, row.RowId, row.Product.Id, -1*row.Quantity)
 	if err != nil {
 		return 0, err
 	}
@@ -180,7 +200,7 @@ func (s *Storage) GetRow(d IDocItem, row *DocRow, tx *sql.Tx) (int, error) {
 }
 
 // Quantity возвращает количество продуктов на св ячейке
-func (s *Storage) Quantity(whsId int, cell Cell, tx *sql.Tx) (map[int]int, error) {
+func (s *Storage) Quantity(whsId int, cell CellItem, tx *sql.Tx) (map[int]int, error) {
 	var zoneId, cellId, prodId, quantity int
 	res := make(map[int]int)
 
@@ -212,7 +232,7 @@ func (s *Storage) Quantity(whsId int, cell Cell, tx *sql.Tx) (map[int]int, error
 	return res, nil
 }
 
-func (s *Storage) MoveRow(d IDocItem, row *DocRow, tx *sql.Tx) error {
+func (s *Storage) MoveRow(d IDocumentItem, row *DocumentRow, tx *sql.Tx) error {
 	// TODO: cellSrc.WhsId <> cellDst.WhsId - временной разрыв или виртуальное перемещение
 
 	_, err := s.GetRow(d, row, tx)
@@ -227,7 +247,7 @@ func (s *Storage) MoveRow(d IDocItem, row *DocRow, tx *sql.Tx) error {
 }
 
 // BulkChangeSzCells устанавливает весогабаритные характеристики для массива ячеек
-func (s *Storage) BulkChangeSzCells(cells []Cell, sz SpecificSize) (int64, error) {
+func (s *Storage) BulkChangeSzCells(cells []CellItem, sz SpecificSize) (int64, error) {
 	var ids []int64
 
 	for _, c := range cells {
@@ -242,7 +262,7 @@ func (s *Storage) BulkChangeSzCells(cells []Cell, sz SpecificSize) (int64, error
 }
 
 // BulkChangePropCells изменяет динамические параметры для массива ячеек
-func (s *Storage) BulkChangePropCells(cells []Cell, CellDynamicProp int, value bool) (int64, error) {
+func (s *Storage) BulkChangePropCells(cells []CellItem, CellDynamicProp int, value bool) (int64, error) {
 	var ids []int64
 
 	for _, c := range cells {
